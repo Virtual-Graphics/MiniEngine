@@ -1,0 +1,86 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "clang",
+      "inherits": "base",
+      "displayName": "Clang (PATH) + Ninja",
+      "description": "Uses clang-cl from PATH (C:/LLVM/bin). clang-cl auto-detects the MSVC toolchain from the registry, so no vcvars is required.",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl"
+      }
+    },
+    {
+      "name": "clang-debug",
+      "inherits": "clang",
+      "displayName": "Clang + Ninja (Debug)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "clang-release",
+      "inherits": "clang",
+      "displayName": "Clang + Ninja (RelWithDebInfo)",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "msvc",
+      "inherits": "base",
+      "displayName": "MSVC (Visual Studio 18 2026)",
+      "generator": "Visual Studio 18 2026",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    },
+    {
+      "name": "vs-clangcl",
+      "inherits": "base",
+      "displayName": "MSVC + bundled ClangCL (VS toolset)",
+      "generator": "Visual Studio 18 2026",
+      "toolset": "ClangCL",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "clang-debug",
+      "configurePreset": "clang-debug"
+    },
+    {
+      "name": "clang-release",
+      "configurePreset": "clang-release"
+    },
+    {
+      "name": "msvc",
+      "configurePreset": "msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vs-clangcl",
+      "configurePreset": "vs-clangcl",
+      "configuration": "Debug"
+    }
+  ]
+}
