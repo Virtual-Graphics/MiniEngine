@@ -28,19 +28,21 @@ MiniEngine 如名字一样它是一个非常 Mini 的游戏引擎，但相比作
 ## MiniEninge v0.0.5 版本之前应该实现的功能
 我不想给 v0.0.5 版本添加太多功能，因为我想快点达到 v0.0.5 这个目标，哈哈，反正又不商用，快点达到一个里程碑也是对自己的及时反馈。
 ### 渲染
-[] forward pipeline
-[] Blinn-Phong Shading
-[] Directional Light
-[] separate 2d pipeline
+[] forward pipeline  
+[] Blinn-Phong Shading  
+[] Directional Light  
+[] separate 2d pipeline  
+
 
 ### 场景 
-[] ECS using Entt
-[] Scene Graph 先不支持 hierarchy
-[] Scene serialize & deserizalize
+[] ECS using Entt  
+[] Scene Graph 先不支持 hierarchy  
+[] Scene serialize & deserizalize  
+
 
 ### 资产
-没有完整的 AssetPipeline 直接从 disk 中加载，没有缓存，最简单的形式。
-[] obj 
-[] image 
+没有完整的 AssetPipeline 直接从 disk 中加载，没有缓存，最简单的形式。  
+[] obj   
+[] image   
 
 嗯对先这样吧。
