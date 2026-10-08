@@ -2,41 +2,19 @@
 
 #include <chrono>
 
-#include <vulcao/context.h>
-#include <vulcao/frame_manager.h>
+#include <glad/glad.h>
 
 #include "base/layer.h"
-#include "base/logger.h"
 
 namespace base {
 
 Application::Application(const ApplicationCreateInfo& info) : m_info(info) {
     m_window = std::make_unique<Window>(
         WindowProps{.title = info.title, .width = info.width, .height = info.height});
-
-    vulcao::ContextInfo context_info;
-    context_info.app_name = info.title;
-    context_info.extensions = m_window->required_instance_extensions();
-    m_context = std::make_unique<vulcao::Context>(context_info);
-
-    const vk::SurfaceKHR surface = m_window->create_surface(m_context->instance());
-
-    vk::Extent2D extent;
-    extent.width = m_window->width();
-    extent.height = m_window->height();
-    m_context->initialize(surface, extent);
-
-    m_frame_manager = std::make_unique<vulcao::FrameManager>(*m_context);
-    log::info("MiniEngine running on {}", m_context->physical_device_info().name);
 }
 
 Application::~Application() {
-    if (m_context) {
-        m_context->wait_idle();
-    }
     m_layer_stack.detach_all();
-    m_frame_manager.reset();
-    m_context.reset();
     m_window.reset();
 }
 
@@ -65,6 +43,11 @@ void Application::run() {
             continue;
         }
 
+        glViewport(0,
+                   0,
+                   static_cast<GLsizei>(m_window->width()),
+                   static_cast<GLsizei>(m_window->height()));
+
         for (auto& layer : m_layer_stack) {
             layer->on_update(dt);
         }
@@ -72,6 +55,8 @@ void Application::run() {
         for (auto& layer : m_layer_stack) {
             layer->on_render();
         }
+
+        m_window->swap_buffers();
     }
 
     m_running = false;

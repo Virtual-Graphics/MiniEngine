@@ -2,11 +2,9 @@
 
 #include <cstdint>
 #include <string>
-#include <vector>
-
-#include <vulkan/vulkan.hpp>
 
 struct SDL_Window;
+struct SDL_GLContextState;
 
 namespace base {
 
@@ -26,9 +24,7 @@ public:
 
     bool should_close() const { return m_should_close; }
     void poll_events();
-
-    std::vector<const char*> required_instance_extensions() const;
-    vk::SurfaceKHR create_surface(vk::Instance instance) const;
+    void swap_buffers();
 
     uint32_t width() const { return m_width; }
     uint32_t height() const { return m_height; }
@@ -39,6 +35,7 @@ public:
 
 private:
     SDL_Window* m_window = nullptr;
+    SDL_GLContextState* m_gl_context = nullptr;
     std::string m_title;
     uint32_t m_width = 0;
     uint32_t m_height = 0;

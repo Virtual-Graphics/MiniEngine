@@ -11,7 +11,7 @@ target_include_directories(mini_engine PUBLIC
 
 target_link_libraries(mini_engine PUBLIC
     SDL3::SDL3
-    vulcao
+    glad::glad
     spdlog::spdlog
     glm::glm
 )

@@ -1,11 +1,13 @@
 #include "base/window.h"
 
+#include <glad/glad.h>
+
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_vulkan.h>
 
 #include <stdexcept>
 
 #include "base/input.h"
+#include "base/logger.h"
 
 namespace base {
 
@@ -15,13 +17,39 @@ Window::Window(const WindowProps& props)
         throw std::runtime_error(std::string("SDL_InitSubSystem failed: ") + SDL_GetError());
     }
 
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
     m_window = SDL_CreateWindow(m_title.c_str(),
                                 static_cast<int>(m_width),
                                 static_cast<int>(m_height),
-                                SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+                                SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     if (!m_window) {
         throw std::runtime_error(std::string("SDL_CreateWindow failed: ") + SDL_GetError());
     }
+
+    m_gl_context = SDL_GL_CreateContext(m_window);
+    if (!m_gl_context) {
+        throw std::runtime_error(std::string("SDL_GL_CreateContext failed: ") +
+                                 SDL_GetError());
+    }
+
+    if (!SDL_GL_MakeCurrent(m_window, m_gl_context)) {
+        throw std::runtime_error(std::string("SDL_GL_MakeCurrent failed: ") + SDL_GetError());
+    }
+    SDL_GL_SetSwapInterval(1);
+
+    if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress))) {
+        throw std::runtime_error("gladLoadGLLoader failed: could not load OpenGL functions");
+    }
+
+    log::info("OpenGL context created: {} ({} / {})",
+              reinterpret_cast<const char*>(glGetString(GL_VERSION)),
+              reinterpret_cast<const char*>(glGetString(GL_VENDOR)),
+              reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 
     int width = 0;
     int height = 0;
@@ -31,6 +59,9 @@ Window::Window(const WindowProps& props)
 }
 
 Window::~Window() {
+    if (m_gl_context) {
+        SDL_GL_DestroyContext(m_gl_context);
+    }
     if (m_window) {
         SDL_DestroyWindow(m_window);
     }
@@ -65,25 +96,6 @@ void Window::poll_events() {
     }
 }
 
-std::vector<const char*> Window::required_instance_extensions() const {
-    Uint32 count = 0;
-    const char* const* extensions = SDL_Vulkan_GetInstanceExtensions(&count);
-    if (!extensions) {
-        throw std::runtime_error(std::string("SDL_Vulkan_GetInstanceExtensions failed: ") +
-                                 SDL_GetError());
-    }
-    return std::vector<const char*>(extensions, extensions + count);
-}
-
-vk::SurfaceKHR Window::create_surface(vk::Instance instance) const {
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    if (!SDL_Vulkan_CreateSurface(m_window,
-                                  static_cast<VkInstance>(instance),
-                                  nullptr,
-                                  &surface)) {
-        throw std::runtime_error(std::string("SDL_Vulkan_CreateSurface failed: ") + SDL_GetError());
-    }
-    return vk::SurfaceKHR(surface);
-}
+void Window::swap_buffers() { SDL_GL_SwapWindow(m_window); }
 
 } // namespace base
