@@ -3,6 +3,7 @@
 #include "render/gl/program.h"
 #include "render/gl/shader.h"
 #include "render/gl/vertex_buffer.h"
+#include "render/gl/index_buffer.h"
 
 #include <vector>
 #include <cstddef>
@@ -58,12 +59,11 @@ public:
 
         glCreateVertexArrays(1, &vao_);
         vbo_.set_data<Vertex>(vertices);
-        glCreateBuffers(1, &ibo_);
+        ibo_.set_data(indices, mini::gl::IndexBuffer::Type::Uint32);
 
-        glNamedBufferStorage(ibo_, sizeof(indices), indices.data(), GL_DYNAMIC_STORAGE_BIT);
 
         glVertexArrayVertexBuffer(vao_, 0, vbo_.id(), 0, sizeof(Vertex));
-        glVertexArrayElementBuffer(vao_, ibo_);
+        glVertexArrayElementBuffer(vao_, ibo_.id());
 
         glEnableVertexArrayAttrib(vao_, 0);
         glVertexArrayAttribFormat(vao_, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
@@ -85,7 +85,6 @@ public:
     }
 
     void on_detach() override {
-        glDeleteBuffers(1, &ibo_);
         glDeleteVertexArrays(1, &vao_);
     }
 
@@ -102,7 +101,8 @@ public:
 
 private:
     mini::gl::VertexBuffer vbo_;
-    GLuint vao_{0}, ibo_{0};
+    mini::gl::IndexBuffer ibo_;
+    GLuint vao_{0};
     std::unique_ptr<mini::gl::Shader> vertex_shader_;
     std::unique_ptr<mini::gl::Shader> fragment_shader_;
     std::unique_ptr<mini::gl::Program> program_;
