@@ -9,7 +9,7 @@ protected:
     std::function<void(GLuint)> deleter_;
 public:
     explicit Object(std::function<void(GLuint)> deleter) : deleter_(std::move(deleter)) {}
-    ~Object(){
+    virtual ~Object(){
         if(id_ && deleter_){
             deleter_(id_);
         }
