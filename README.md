@@ -25,25 +25,8 @@ MiniEngine 如名字一样它是一个非常 Mini 的游戏引擎，但相比作
 开发。并且将在 docs/ 下写下这次开发的 [devlog](https://codeberg.org/Akiyama_Artichoke/MiniEngine/src/branch/main/docs/devlog)，也许这些 devlog 可以作为你学习 MiniEngine 的历史的重要一手资料。并且 Artichoke 也会在 docs/
 下整理系统架构，当然这也许会不完整，但最终 MiniEnigne 应该需要一个官网展示关于 MiniEngine 的所有信息。
 
-## MiniEninge v0.0.5 版本之前应该实现的功能
-我不想给 v0.0.5 版本添加太多功能，因为我想快点达到 v0.0.5 这个目标，哈哈，反正又不商用，快点达到一个里程碑也是对自己的及时反馈。
-### 渲染
-[] forward pipeline  
-[] Blinn-Phong Shading  
-[] Directional Light  
-[] separate 2d pipeline  
-
-
-### 场景 
-[] ECS using Entt  
-[] Scene Graph 先不支持 hierarchy  
-[] Scene serialize & deserizalize  
-
-
-### 资产
-没有完整的 AssetPipeline 直接从 disk 中加载，没有缓存，最简单的形式。  
-[] obj   
-[] image   
+## Roadmap
+[Roadmap](https://codeberg.org/Akiyama_Artichoke/MiniEngine/projects/71874)
 
 ## LICENSE
 采用 MIT 开源证书，本引擎能随意修改并作为商用，并且引擎开发的游戏也能随意商用，提供最高的自由度。
