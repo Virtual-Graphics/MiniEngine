@@ -14,4 +14,5 @@ target_link_libraries(mini_engine PUBLIC
     glad::glad
     spdlog::spdlog
     glm::glm
+    tinyobjloader::tinyobjloader
 )

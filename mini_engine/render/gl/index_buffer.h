@@ -19,7 +19,7 @@ public:
     void set_data(const std::vector<T>& data, Type type, Usage usage = Usage::Static){
         count_ = data.size();
         type_ = type;
-        Buffer::set_data(data.data(), data.size() * type_size(type), usage);
+        Buffer::set_data(static_cast<const void*>(data.data()), data.size() * type_size(type), usage);
     }
     
     void set_data(const void* data, std::size_t count, Type type, Usage usage = Usage::Static){

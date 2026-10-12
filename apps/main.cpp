@@ -6,19 +6,19 @@
 #include "render/gl/vertex_array.h"
 #include "render/gl/vertex_buffer.h"
 #include "render/gl/vertex_layout.h"
+#include "render/reources/mesh.h"
+#include "asset/obj_loader.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <vector>
 
-struct Vertex {
-    glm::vec3 position;
-    glm::vec4 color;
-};
 
 class ClearLayer : public base::Layer {
 public:
@@ -26,26 +26,34 @@ public:
             : base::Layer("ClearLayer") {}
 
     void on_attach() override {
-        const std::vector<Vertex> vertices{
-            Vertex{ { 0.0f, 0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-            Vertex{ { -0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-            Vertex{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-        };
-        const std::vector<uint32_t> indices{ 0, 1, 2 };
+        std::filesystem::path assets_dir = ASSETS_DIR; 
+        mesh_ = std::make_unique<mini::Mesh>(mini::asset::load_obj( assets_dir / "teapot.obj" ));
 
-        vbo_.set_data<Vertex>(vertices);
-        ibo_.set_data(indices, mini::gl::IndexBuffer::Type::Uint32);
+        vbo_.set_data<mini::Vertex>(mesh_->vertices_);
+        ibo_.set_data(mesh_->indices_, mini::gl::IndexBuffer::Type::Uint32);
 
         const mini::gl::VertexLayout layout{
             { 
-              { 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position) },
-              { 1, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, color)    }
+              { 0, 3, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, position) },
+              { 1, 4, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, color)    }
             },
-            sizeof(Vertex)
+            sizeof(mini::Vertex)
         };
 
         vao_.set_vertex_buffer(vbo_, layout);
         vao_.set_index_buffer(ibo_);
+
+        view_ = glm::lookAt(glm::vec3{0.0f,0.0f,5.0f}, glm::vec3{0.0f,0.0f,0.0f}, glm::vec3{0.0f,1.0f,0.0f});
+
+        float aspect = (float)application().get_window().width() / (float)application().get_window().height();
+        proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
+
+        model_ = glm::mat4(1.0f);
+        model_ = glm::translate(model_, glm::vec3{0.0f,-1.5f,0.0f});
+
+        mvp_ = proj_ * view_ * model_;
+
+        glEnable(GL_DEPTH_TEST);
 
         std::filesystem::path shaders_dir = SHADERS_DIR;
 
@@ -59,6 +67,17 @@ public:
         program_->link();
     }
 
+    void on_update(base::Timestep dt) override {
+        angle_ += dt * rotate_speed_;
+        if (angle_ > 360.0f) {
+            angle_ -= 360.0f;
+        }
+        model_ = glm::mat4(1.0f);
+        model_ = glm::translate(model_, glm::vec3{0.0f,-1.5f,0.0f});
+        model_ = glm::rotate(model_, glm::radians(angle_), glm::vec3{0.0f,1.0f,0.0f});
+        mvp_ = proj_ * view_ * model_;
+    }
+
     void on_detach() override {}
 
     void on_render() override {
@@ -66,6 +85,10 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program_->use();
+        
+        GLint loc = glGetUniformLocation(program_->id(), "u_mvp");
+        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp_));
+
         vao_.bind();
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()), static_cast<GLenum>(vao_.index_type()), nullptr);
         mini::gl::VertexArray::unbind();
@@ -76,6 +99,13 @@ private:
     mini::gl::VertexBuffer vbo_;
     mini::gl::IndexBuffer ibo_;
     mini::gl::VertexArray vao_;
+    std::unique_ptr<mini::Mesh> mesh_;
+    float angle_ = 0;
+    float rotate_speed_ = 60.0;
+    glm::mat4 model_;
+    glm::mat4 view_;
+    glm::mat4 proj_;
+    glm::mat4 mvp_;
     std::unique_ptr<mini::gl::Shader> vertex_shader_;
     std::unique_ptr<mini::gl::Shader> fragment_shader_;
     std::unique_ptr<mini::gl::Program> program_;

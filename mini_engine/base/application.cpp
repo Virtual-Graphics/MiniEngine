@@ -43,10 +43,7 @@ void Application::run() {
             continue;
         }
 
-        glViewport(0,
-                   0,
-                   static_cast<GLsizei>(m_window->width()),
-                   static_cast<GLsizei>(m_window->height()));
+        glViewport(0, 0, static_cast<GLsizei>(m_window->width()), static_cast<GLsizei>(m_window->height()));
 
         for (auto& layer : m_layer_stack) {
             layer->on_update(dt);

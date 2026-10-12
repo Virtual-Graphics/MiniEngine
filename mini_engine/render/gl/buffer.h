@@ -24,7 +24,7 @@ public:
 
     template<typename T>
     void set_data(const std::vector<T>& data, Usage usage = Usage::Static){
-        set_data(data.data(), data.size() * sizeof(T),usage);
+        set_data(data.data(), data.size(), usage);
     }
 
     void set_data(const void* data, std::size_t size, Usage usage = Usage::Static){
