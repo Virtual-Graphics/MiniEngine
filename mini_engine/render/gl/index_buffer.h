@@ -22,13 +22,18 @@ public:
         Buffer::set_data(data.data(), data.size() * type_size(type), usage);
     }
     
-    
     void set_data(const void* data, std::size_t count, Type type, Usage usage = Usage::Static){
         count_ = count; 
         type_ = type;
         Buffer::set_data(data, count * type_size(type), usage);
     }
+
+    std::size_t count() const { return count_; } 
+
+    Type type() const { return type_; }
+
 private:
+
     Type type_ = Type::Uint32;
     std::size_t count_ = 0;
 

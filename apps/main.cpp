@@ -1,44 +1,19 @@
 #include "base/application.h"
 #include "base/layer.h"
+#include "render/gl/index_buffer.h"
 #include "render/gl/program.h"
 #include "render/gl/shader.h"
+#include "render/gl/vertex_array.h"
 #include "render/gl/vertex_buffer.h"
-#include "render/gl/index_buffer.h"
+#include "render/gl/vertex_layout.h"
 
-#include <vector>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <memory>
-
-namespace {
-
-constexpr const char* kVertexShaderSource = R"(
-#version 460 core
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec4 a_color;
-
-out vec4 v_color;
-
-void main() {
-    v_color = a_color;
-    gl_Position = vec4(a_position, 1.0);
-}
-)";
-
-constexpr const char* kFragmentShaderSource = R"(
-#version 460 core
-in vec4 v_color;
-
-out vec4 frag_color;
-
-void main() {
-    frag_color = v_color;
-}
-)";
-
-} // namespace
+#include <vector>
 
 struct Vertex {
     glm::vec3 position;
@@ -47,36 +22,36 @@ struct Vertex {
 
 class ClearLayer : public base::Layer {
 public:
-    ClearLayer() : base::Layer("ClearLayer") {}
+    ClearLayer()
+            : base::Layer("ClearLayer") {}
 
     void on_attach() override {
         const std::vector<Vertex> vertices{
-            Vertex{{0.0f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-            Vertex{{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}},
-            Vertex{{0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+            Vertex{ { 0.0f, 0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+            Vertex{ { -0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+            Vertex{ { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
         };
-        const std::vector<uint32_t> indices{0, 1, 2};
+        const std::vector<uint32_t> indices{ 0, 1, 2 };
 
-        glCreateVertexArrays(1, &vao_);
         vbo_.set_data<Vertex>(vertices);
         ibo_.set_data(indices, mini::gl::IndexBuffer::Type::Uint32);
 
+        const mini::gl::VertexLayout layout{
+            { 
+              { 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position) },
+              { 1, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, color)    }
+            },
+            sizeof(Vertex)
+        };
 
-        glVertexArrayVertexBuffer(vao_, 0, vbo_.id(), 0, sizeof(Vertex));
-        glVertexArrayElementBuffer(vao_, ibo_.id());
+        vao_.set_vertex_buffer(vbo_, layout);
+        vao_.set_index_buffer(ibo_);
 
-        glEnableVertexArrayAttrib(vao_, 0);
-        glVertexArrayAttribFormat(vao_, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
-        glVertexArrayAttribBinding(vao_, 0, 0);
+        std::filesystem::path shaders_dir = SHADERS_DIR;
 
-        glEnableVertexArrayAttrib(vao_, 1);
-        glVertexArrayAttribFormat(vao_, 1, 4, GL_FLOAT, GL_FALSE, offsetof(Vertex, color));
-        glVertexArrayAttribBinding(vao_, 1, 0);
-
-        vertex_shader_ = std::make_unique<mini::gl::Shader>(
-            mini::gl::Shader::Type::Vertex, kVertexShaderSource);
-        fragment_shader_ = std::make_unique<mini::gl::Shader>(
-            mini::gl::Shader::Type::Fragment, kFragmentShaderSource);
+        vertex_shader_ = std::make_unique<mini::gl::Shader>(mini::gl::Shader::Type::Vertex, shaders_dir / "triangle.vert");
+        fragment_shader_ = std::make_unique<mini::gl::Shader>(mini::gl::Shader::Type::Fragment, shaders_dir / "triangle.frag");
+        
 
         program_ = std::make_unique<mini::gl::Program>();
         program_->attach(*vertex_shader_);
@@ -84,25 +59,23 @@ public:
         program_->link();
     }
 
-    void on_detach() override {
-        glDeleteVertexArrays(1, &vao_);
-    }
+    void on_detach() override {}
 
     void on_render() override {
         glClearColor(0.08f, 0.09f, 0.11f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program_->use();
-        glBindVertexArray(vao_);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
-        glBindVertexArray(0);
+        vao_.bind();
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()), static_cast<GLenum>(vao_.index_type()), nullptr);
+        mini::gl::VertexArray::unbind();
         mini::gl::Program::unuse();
     }
 
 private:
     mini::gl::VertexBuffer vbo_;
     mini::gl::IndexBuffer ibo_;
-    GLuint vao_{0};
+    mini::gl::VertexArray vao_;
     std::unique_ptr<mini::gl::Shader> vertex_shader_;
     std::unique_ptr<mini::gl::Shader> fragment_shader_;
     std::unique_ptr<mini::gl::Program> program_;

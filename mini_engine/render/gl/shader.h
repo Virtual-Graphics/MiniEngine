@@ -20,11 +20,9 @@ public:
         compile(type, source);
     }
 
-    Shader(Type type, const std::filesystem::path& path) : Shader(type,read_file(path)) {
-    }
+    Shader(Type type, const std::filesystem::path& path) : Shader(type,read_file(path)) {}
 
-    Shader(Type type, const char* source) : Shader(type,std::string(source)) {
-    }
+    Shader(Type type, const char* source) : Shader(type,std::string(source)) {}
 
 private:
 

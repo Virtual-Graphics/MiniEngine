@@ -25,6 +25,7 @@ public:
     static void unuse() { glUseProgram(0); }
 
 private:
+    // Save the GL ID rather than the shader object, which is more effective.
     std::vector<GLuint> m_attached;
 };
 }
