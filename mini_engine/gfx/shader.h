@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <filesystem>
 
-namespace mini::gl{
+namespace mini::gfx{
 class Shader : public Object{
 public:
     enum class Type {

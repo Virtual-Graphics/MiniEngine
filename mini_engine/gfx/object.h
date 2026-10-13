@@ -2,7 +2,7 @@
 #include <glad/glad.h>
 #include <functional>
 
-namespace mini::gl{
+namespace mini::gfx{
 class Object{
 protected:
     GLuint id_ = 0;
@@ -33,7 +33,7 @@ public:
         return id_;
     }
 
-    bool valid(){
+    bool valid() const {
         return id_ != 0;
     }
 

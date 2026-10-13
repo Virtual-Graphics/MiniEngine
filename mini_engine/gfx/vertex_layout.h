@@ -4,7 +4,7 @@
 #include <initializer_list>
 #include <vector>
 
-namespace mini::gl {
+namespace mini::gfx {
 
 struct VertexAttribute {
     std::uint32_t location;

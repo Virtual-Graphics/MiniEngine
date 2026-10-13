@@ -3,7 +3,7 @@
 #include <vector>
 #include <glad/glad.h>
 
-namespace mini::gl{
+namespace mini::gfx{
 class VertexBuffer : public Buffer {
 public:
 

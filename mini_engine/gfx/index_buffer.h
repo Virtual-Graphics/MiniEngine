@@ -3,7 +3,7 @@
 #include <glad/glad.h>
 #include <vector>
 
-namespace mini::gl{
+namespace mini::gfx{
 class IndexBuffer : public Buffer{
 public:
     enum class Type{

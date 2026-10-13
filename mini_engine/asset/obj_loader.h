@@ -24,6 +24,8 @@ inline Mesh load_obj(const std::filesystem::path& path){
     if (!success) {
         return {};
     }
+
+    base::log::info("loaded obj : {}", path.c_str());
     
     Mesh mesh;
     glm::vec4 color;

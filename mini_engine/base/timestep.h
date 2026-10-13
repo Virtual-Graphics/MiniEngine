@@ -4,17 +4,16 @@ namespace base {
 
 class Timestep {
 public:
-    Timestep(float time = 0.0f)
-            : m_time(time) {}
+    Timestep(float time = 0.0f) : time_(time) {}
 
-    operator float() const { return m_time; }
+    operator float() const { return time_; }
 
-    float get_seconds() const { return m_time; }
+    float get_seconds() const { return time_; }
 
-    float get_milliseconds() const { return m_time * 1000.0f; }
+    float get_milliseconds() const { return time_ * 1000.0f; }
 
 private:
-    float m_time{ 0.0f };
+    float time_{ 0.0f };
 };
 
 } // namespace base

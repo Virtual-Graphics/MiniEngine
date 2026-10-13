@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <glad/glad.h>
 
-namespace mini::gl {
+namespace mini::gfx {
 
 class VertexArray : public Object {
 public:

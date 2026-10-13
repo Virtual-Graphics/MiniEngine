@@ -4,7 +4,6 @@
 #include <string>
 
 struct SDL_Window;
-struct SDL_GLContextState;
 
 namespace base {
 
@@ -22,25 +21,23 @@ public:
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
 
-    bool should_close() const { return m_should_close; }
+    bool should_close() const { return should_close_; }
     void poll_events();
-    void swap_buffers();
 
-    uint32_t width() const { return m_width; }
-    uint32_t height() const { return m_height; }
-    bool resized() const { return m_resized; }
-    void clear_resized() { m_resized = false; }
+    uint32_t width() const { return width_; }
+    uint32_t height() const { return height_; }
+    bool resized() const { return resized_; }
+    void clear_resized() { resized_ = false; }
 
-    SDL_Window* handle() const { return m_window; }
+    SDL_Window* handle() const { return window_; }
 
 private:
-    SDL_Window* m_window = nullptr;
-    SDL_GLContextState* m_gl_context = nullptr;
-    std::string m_title;
-    uint32_t m_width = 0;
-    uint32_t m_height = 0;
-    bool m_should_close = false;
-    bool m_resized = false;
+    SDL_Window* window_ = nullptr;
+    std::string title_;
+    uint32_t width_ = 0;
+    uint32_t height_ = 0;
+    bool should_close_ = false;
+    bool resized_ = false;
 };
 
 } // namespace base

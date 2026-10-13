@@ -4,11 +4,12 @@
 #include <memory>
 #include <string>
 
-#include "base/layer_stack.h"
 #include "base/timestep.h"
 #include "base/window.h"
+#include "engine/layer_stack.h"
+#include "gfx/context.h"
 
-namespace base {
+namespace engine {
 
 struct ApplicationCreateInfo {
     uint32_t width = 1280;
@@ -26,17 +27,18 @@ public:
 
     void run();
 
-    Window& get_window() { return *m_window; }
-    LayerStack& get_layer_stack() { return m_layer_stack; }
+    base::Window& get_window() { return *window_; }
+    LayerStack& get_layer_stack() { return layer_stack_; }
 
     void push_layer(std::unique_ptr<Layer> layer);
     void push_overlay(std::unique_ptr<Layer> overlay);
 
 private:
-    ApplicationCreateInfo m_info;
-    std::unique_ptr<Window> m_window;
-    LayerStack m_layer_stack;
-    bool m_running = false;
+    ApplicationCreateInfo info_;
+    std::unique_ptr<base::Window> window_;
+    std::unique_ptr<mini::gfx::Context> context_;
+    LayerStack layer_stack_;
+    bool running_ = false;
 };
 
-} // namespace base
+} // namespace engine
