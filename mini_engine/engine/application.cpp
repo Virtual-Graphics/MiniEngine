@@ -7,6 +7,7 @@
 namespace engine {
 
 Application::Application(const ApplicationCreateInfo& info) : info_(info) {
+    mini::gfx::Context::prepare_attributes();
     window_ = std::make_unique<base::Window>(base::WindowProps{ .title = info.title, .width = info.width, .height = info.height });
     context_ = std::make_unique<mini::gfx::Context>(window_->handle());
 }

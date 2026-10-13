@@ -28,24 +28,19 @@ inline Mesh load_obj(const std::filesystem::path& path){
     base::log::info("loaded obj : {}", path.c_str());
     
     Mesh mesh;
-    glm::vec4 color;
     std::uint32_t next = 0;
     for (const auto& shape : shapes) {
         for (const auto& index : shape.mesh.indices) {
             float vx = attrib.vertices[3 * index.vertex_index + 0];
             float vy = attrib.vertices[3 * index.vertex_index + 1];
             float vz = attrib.vertices[3 * index.vertex_index + 2];
-           
-            std::uint8_t i = index.vertex_index % 3;
-            if (i == 0) {
-                color = {1.0f,0.0f,0.0f,1.0f};
-            } else if (i == 1) {
-                color = {0.0f,1.0f,0.0f,1.0f};
-            } else {
-                color = {0.0f,0.0f,1.0f,1.0f};
-            }
-
-            mesh.vertices_.push_back({{vx, vy, vz}, color});
+          
+            float nx = attrib.vertices[3 * index.vertex_index + 0];
+            float ny = attrib.vertices[3 * index.vertex_index + 1];
+            float nz = attrib.vertices[3 * index.vertex_index + 2];
+         
+            glm::vec3 normal = glm::normalize(glm::vec3{nx, ny, nz});
+            mesh.vertices_.push_back({{vx, vy, vz}, normal});
             mesh.indices_.push_back(next++);
         }
     }

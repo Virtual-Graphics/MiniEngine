@@ -1,9 +1,9 @@
 #version 460 core
 
-in vec4 v_color;
+in vec3 v_normal;
 
 out vec4 f_color;
 
 void main() {
-    f_color = v_color;
+    f_color = vec4(v_normal, 1.0f);
 }

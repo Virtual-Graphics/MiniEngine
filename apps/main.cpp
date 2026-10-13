@@ -23,8 +23,7 @@
 
 class ClearLayer : public engine::Layer {
 public:
-    ClearLayer()
-            : engine::Layer("ClearLayer") {}
+    ClearLayer() : engine::Layer("ClearLayer") {}
 
     void on_attach() override {
         std::filesystem::path assets_dir = ASSETS_DIR; 
@@ -36,7 +35,7 @@ public:
         const mini::gfx::VertexLayout layout{
             { 
               { 0, 3, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, position) },
-              { 1, 4, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, color)    }
+              { 1, 3, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, normal)   }
             },
             sizeof(mini::Vertex)
         };
@@ -76,9 +75,8 @@ public:
         model_ = glm::mat4(1.0f);
         model_ = glm::translate(model_, glm::vec3{0.0f,-1.5f,0.0f});
         model_ = glm::rotate(model_, glm::radians(angle_), glm::vec3{0.0f,1.0f,0.0f});
-
-        float aspect = static_cast<float>(application().get_window().width()) /
-                       static_cast<float>(application().get_window().height());
+    
+        float aspect = static_cast<float>(application().get_window().width()) / static_cast<float>(application().get_window().height());
         proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
         mvp_ = proj_ * view_ * model_;
@@ -123,7 +121,6 @@ int main() {
     info.height = 720;
     info.title = "MiniEngine";
 
-    mini::gfx::Context::prepare_attributes();
     engine::Application app(info);
     app.push_layer(std::make_unique<ClearLayer>());
     app.run();
