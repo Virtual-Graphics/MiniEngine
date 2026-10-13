@@ -27,7 +27,7 @@ public:
 
     void on_attach() override {
         std::filesystem::path assets_dir = ASSETS_DIR; 
-        mesh_ = std::make_unique<mini::Mesh>(mini::asset::load_obj( assets_dir / "teapot.obj" ));
+        mesh_ = std::make_unique<mini::Mesh>(mini::asset::OBJImporter::load_obj( assets_dir / "StanfordBunny.obj" ));
 
         vbo_.set_data<mini::Vertex>(mesh_->vertices_);
         ibo_.set_data(mesh_->indices_, mini::gfx::IndexBuffer::Type::Uint32);
@@ -49,7 +49,8 @@ public:
         proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
         model_ = glm::mat4(1.0f);
-        model_ = glm::translate(model_, glm::vec3{0.0f,-1.5f,0.0f});
+        model_ = glm::scale(model_, glm::vec3(10.0f));
+        model_ = glm::translate(model_, glm::vec3{0.0f,-1.0f,0.0f});
 
         mvp_ = proj_ * view_ * model_;
 
@@ -73,8 +74,9 @@ public:
             angle_ -= 360.0f;
         }
         model_ = glm::mat4(1.0f);
-        model_ = glm::translate(model_, glm::vec3{0.0f,-1.5f,0.0f});
+        model_ = glm::translate(model_, glm::vec3{0.0f,-1.0f,0.0f});
         model_ = glm::rotate(model_, glm::radians(angle_), glm::vec3{0.0f,1.0f,0.0f});
+        model_ = glm::scale(model_, glm::vec3(15.0f));
     
         float aspect = static_cast<float>(application().get_window().width()) / static_cast<float>(application().get_window().height());
         proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
