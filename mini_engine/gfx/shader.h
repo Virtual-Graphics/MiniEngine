@@ -1,4 +1,5 @@
 #pragma once
+#include "base/logger.h"
 #include "object.h"
 #include <glad/glad.h>
 #include <string>
@@ -35,6 +36,27 @@ private:
         GLint len = static_cast<GLint>(source.size());
         glShaderSource(id_, 1, &src, &len);
         glCompileShader(id_);
+
+        GLint ok = GL_FALSE;
+        glGetShaderiv(id_, GL_COMPILE_STATUS, &ok);
+        if (ok == GL_FALSE) {
+            const std::string log = info_log(id_);
+            base::log::error("Shader compile failed:\n{}", log);
+            throw std::runtime_error("Shader compilation failed");
+        }
+    }
+
+    static std::string info_log(GLuint id) {
+        GLint len = 0;
+        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &len);
+        if (len <= 1) {
+            return {};
+        }
+        std::string log(static_cast<std::size_t>(len), '\0');
+        GLsizei written = 0;
+        glGetShaderInfoLog(id, len, &written, log.data());
+        log.resize(static_cast<std::size_t>(written));
+        return log;
     }
 
     static std::string read_file(const std::string& path){
