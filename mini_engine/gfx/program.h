@@ -3,6 +3,9 @@
 #include "base/logger.h"
 #include "shader.h"
 #include <stdexcept>
+#include <glm/glm.hpp> 
+#include <glm/gtc/type_ptr.hpp>
+#include <unordered_map>
 #include <string>
 namespace mini::gfx{
 class Program : public Object {
@@ -35,6 +38,15 @@ public:
     void use() const { glUseProgram(id_); }
     static void unuse() { glUseProgram(0); }
 
+    void set(const char* name, float v)            { glUniform1f(location(name), v); }
+    void set(const char* name, int v)              { glUniform1i(location(name), v); }
+
+    void set(const char* name, const glm::vec2& v) { glUniform2fv(location(name), 1, glm::value_ptr(v)); }
+    void set(const char* name, const glm::vec3& v) { glUniform3fv(location(name), 1, glm::value_ptr(v)); }
+    void set(const char* name, const glm::vec4& v) { glUniform4fv(location(name), 1, glm::value_ptr(v)); }
+
+    void set(const char* name, const glm::mat3& v) { glUniformMatrix3fv(location(name), 1, GL_FALSE, glm::value_ptr(v)); }
+    void set(const char* name, const glm::mat4& v) { glUniformMatrix4fv(location(name), 1, GL_FALSE, glm::value_ptr(v)); }
 private:
     static std::string info_log(GLuint id) {
         GLint len = 0;
@@ -49,6 +61,14 @@ private:
         return log;
     }
 
+    GLint location(const char* name) {
+        auto it = locations_.find(name);
+        if (it != locations_.end()) return it->second;
+        GLint loc = glGetUniformLocation(id_, name);
+        locations_.emplace(name, loc);
+        return loc;
+    }
+    std::unordered_map<std::string, GLint> locations_;
     // Save the GL ID rather than the shader object, which is more effective.
     std::vector<GLuint> attached_;
 };

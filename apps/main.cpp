@@ -89,10 +89,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program_->use();
-        
-        GLint loc = glGetUniformLocation(program_->id(), "u_mvp");
-        glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(mvp_));
-
+        program_->set("u_mvp", mvp_); 
         vao_.bind();
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()), static_cast<GLenum>(vao_.index_type()), nullptr);
         mini::gfx::VertexArray::unbind();
