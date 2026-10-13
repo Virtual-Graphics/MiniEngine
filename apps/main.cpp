@@ -43,7 +43,8 @@ public:
         vao_.set_vertex_buffer(vbo_, layout);
         vao_.set_index_buffer(ibo_);
 
-        view_ = glm::lookAt(glm::vec3{0.0f,0.0f,5.0f}, glm::vec3{0.0f,0.0f,0.0f}, glm::vec3{0.0f,1.0f,0.0f});
+        view_pos_ = glm::vec3{0.0f,0.0f,5.0f};
+        view_ = glm::lookAt(view_pos_, glm::vec3{0.0f,0.0f,0.0f}, glm::vec3{0.0f,1.0f,0.0f});
 
         float aspect = (float)application().get_window().width() / (float)application().get_window().height();
         proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
@@ -52,14 +53,14 @@ public:
         model_ = glm::scale(model_, glm::vec3(10.0f));
         model_ = glm::translate(model_, glm::vec3{0.0f,-1.0f,0.0f});
 
-        mvp_ = proj_ * view_ * model_;
+        view_proj_ = proj_ * view_;
 
         glEnable(GL_DEPTH_TEST);
 
         std::filesystem::path shaders_dir = SHADERS_DIR;
 
-        vertex_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Vertex, shaders_dir / "triangle.vert");
-        fragment_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Fragment, shaders_dir / "triangle.frag");
+        vertex_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Vertex, shaders_dir / "blinn_phong.vert");
+        fragment_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Fragment, shaders_dir / "blinn_phong.frag");
         
 
         program_ = std::make_unique<mini::gfx::Program>();
@@ -81,7 +82,7 @@ public:
         float aspect = static_cast<float>(application().get_window().width()) / static_cast<float>(application().get_window().height());
         proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
-        mvp_ = proj_ * view_ * model_;
+        view_proj_ = proj_ * view_;
     }
 
     void on_detach() override {}
@@ -91,7 +92,9 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program_->use();
-        program_->set("u_mvp", mvp_); 
+        program_->set("u_model", model_);
+        program_->set("u_view_proj", view_proj_);
+        program_->set("u_view_pos", view_pos_);
         vao_.bind();
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()), static_cast<GLenum>(vao_.index_type()), nullptr);
         mini::gfx::VertexArray::unbind();
@@ -108,7 +111,8 @@ private:
     glm::mat4 model_;
     glm::mat4 view_;
     glm::mat4 proj_;
-    glm::mat4 mvp_;
+    glm::mat4 view_proj_;
+    glm::vec3 view_pos_;
     std::unique_ptr<mini::gfx::Shader> vertex_shader_;
     std::unique_ptr<mini::gfx::Shader> fragment_shader_;
     std::unique_ptr<mini::gfx::Program> program_;
