@@ -9,12 +9,14 @@ MiniEngine 如名字一样它是一个非常 Mini 的游戏引擎，但相比作
 我在这里说实话吧，因为我认为现在的面试评价体系在被 AI 的影响下已经和原来很不一样了，在我看来现在的还使用着手写时代的项目作为项目经验完全
 约等于没有经验，现在应该需要的是在 AI 的配合下开发出一个具有重大影响、重大突破、功能非常完整的可使用可部署甚至可商用的项目，而 FinalEngine 就是冲着这个目标去的。而 MiniEnigne 也就是本项目将作为我个人的长期性的游戏引擎存在，我非常喜欢那种一把一把把一个软件拉扯大的感觉，这会让你对这个软件产生感情，对我非常喜欢这种感觉，AI 写出来的东西我几乎没有任何感觉。
 
-## MiniEneing 的工作形式
+## 其他
 现在初步基本由我一个人完成对 MiniEngine 的全部工作，并且不支持任何人添加 Pull Request ，如果你想指出一些问题应该直接联系作者，至于联系方式嘛，既然你都能看到这个仓库了，还会没有作者的联系方式？作者将会在业余时间开发，哈哈，其实作者更本没有工作，大三在读学生，应该说作者所有的时间都是业余时间，但是作者除了 MiniEninge 要开发外，还有更多的其他的事情要做，作者只会在觉得这个时间段是开发 MiniEngine 合适的时间段进行开发。并且将在 docs/ 下写下这次开发的 [devlog](https://codeberg.org/Akiyama_Artichoke/MiniEngine/src/branch/main/docs/devlog)，也许这些 devlog 可以作为你学习 MiniEngine 的历史的重要一手资料。并且 Artichoke 也会在 docs/
 下整理系统架构，当然这也许会不完整，但最终 MiniEnigne 应该需要一个官网展示关于 MiniEngine 的所有信息。
 
-## Roadmap
-[Roadmap](https://codeberg.org/Akiyama_Artichoke/MiniEngine/projects/71874)
-
-## LICENSE
+## ABOUT
 采用 MIT 开源证书，本引擎能随意修改并作为商用，并且引擎开发的游戏也能随意商用，提供最高的自由度。
+
+[Roadmap](https://codeberg.org/Akiyama_Artichoke/MiniEngine/projects/71874) 查看项目未来的规划。  
+[Github](https://github.com/Virtual-Graphics/MiniEngine) 仓库。  
+[Codeberg](https://codeberg.org/Akiyama_Artichoke/MiniEngine) 仓库。
+
