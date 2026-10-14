@@ -6,3 +6,4 @@ include(${CMAKE_CURRENT_LIST_DIR}/third_party_glm.cmake)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../third_praty/glad glad)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../third_praty/tinyobjloader tinyobjloader)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../third_praty/stb stb)

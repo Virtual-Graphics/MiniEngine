@@ -15,4 +15,5 @@ target_link_libraries(mini_engine PUBLIC
     spdlog::spdlog
     glm::glm
     tinyobjloader::tinyobjloader
+    stb::stb_image
 )
