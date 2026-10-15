@@ -50,10 +50,6 @@ Context::~Context() {
     }
 }
 
-void Context::set_viewport(uint32_t width, uint32_t height) const {
-    glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
-}
-
 void Context::swap_buffers() const { SDL_GL_SwapWindow(window_); }
 
 void Context::set_swap_interval(int interval) const { SDL_GL_SetSwapInterval(interval); }

@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 
 struct SDL_Window;
 
@@ -16,7 +15,6 @@ public:
     Context(const Context&) = delete;
     Context& operator=(const Context&) = delete;
 
-    void set_viewport(uint32_t width, uint32_t height) const;
     void swap_buffers() const;
     void set_swap_interval(int interval) const;
 

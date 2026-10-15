@@ -1,7 +1,9 @@
 #include "asset/obj_loader.h"
 #include "engine/application.h"
 #include "engine/layer.h"
+#include "gfx/command.h"
 #include "gfx/index_buffer.h"
+#include "gfx/pipeline_state.h"
 #include "gfx/program.h"
 #include "gfx/render_target.h"
 #include "gfx/shader.h"
@@ -94,7 +96,8 @@ public:
         model_ = glm::scale(model_, glm::vec3(10.0f));
         model_ = glm::translate(model_, glm::vec3{ 0.0f, -1.0f, 0.0f });
 
-        glEnable(GL_DEPTH_TEST);
+        mesh_pipeline_ = mini::gfx::PipelineState({ .depth_test = true });
+        screen_pipeline_ = mini::gfx::PipelineState();
 
         std::filesystem::path shaders_dir = SHADERS_DIR;
 
@@ -146,25 +149,22 @@ public:
         render_target_->bind();
         render_target_->clear(clear_color_, 1.0f);
 
+        mini::gfx::Command::apply(mesh_pipeline_);
         program_->use();
         program_->set("u_model", model_);
-        mesh_vao_.bind();
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(mesh_vao_.index_count()), static_cast<GLenum>(mesh_vao_.index_type()), nullptr);
+        mini::gfx::Command::draw_indexed(mesh_vao_);
 
         mini::gfx::RenderTarget::unbind();
 
         auto& window = application().get_window();
-        glViewport(0, 0, static_cast<GLsizei>(window.width()), static_cast<GLsizei>(window.height()));
+        mini::gfx::Command::set_viewport(window.width(), window.height());
+        mini::gfx::Command::clear(clear_color_, 1.0f);
 
-        glClearColor(clear_color_.r, clear_color_.g, clear_color_.b, clear_color_.a);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        mini::gfx::Command::apply(screen_pipeline_);
         screen_program_->use();
         screen_program_->set("u_texture", 0);
         render_target_->color().bind(0);
-        quad_vao_.bind();
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(quad_vao_.index_count()), static_cast<GLenum>(quad_vao_.index_type()), nullptr);
-        mini::gfx::VertexArray::unbind();
+        mini::gfx::Command::draw_indexed(quad_vao_);
         mini::gfx::Program::unuse();
     }
 
@@ -192,6 +192,8 @@ private:
     glm::vec3 view_pos_;
     CameraBlock camera_;
     glm::vec4 clear_color_{ 0.08f, 0.09f, 0.11f, 1.0f };
+    mini::gfx::PipelineState mesh_pipeline_;
+    mini::gfx::PipelineState screen_pipeline_;
     std::unique_ptr<mini::gfx::Shader> vertex_shader_;
     std::unique_ptr<mini::gfx::Shader> fragment_shader_;
     std::unique_ptr<mini::gfx::Program> program_;

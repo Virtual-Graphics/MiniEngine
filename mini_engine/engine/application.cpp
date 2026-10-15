@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include "engine/layer.h"
+#include "gfx/command.h"
 
 namespace engine {
 
@@ -43,7 +44,7 @@ void Application::run() {
             continue;
         }
 
-        context_->set_viewport(window_->width(), window_->height());
+        mini::gfx::Command::set_viewport(window_->width(), window_->height());
 
         for (auto& layer : layer_stack_) {
             layer->on_update(dt);

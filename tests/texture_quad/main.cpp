@@ -1,6 +1,7 @@
 #include "asset/image_loader.h"
 #include "engine/application.h"
 #include "engine/layer.h"
+#include "gfx/command.h"
 #include "gfx/image.h"
 #include "gfx/index_buffer.h"
 #include "gfx/program.h"
@@ -85,16 +86,12 @@ public:
     void on_detach() override {}
 
     void on_render() override {
-        glClearColor(0.08f, 0.09f, 0.11f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        mini::gfx::Command::clear({ 0.08f, 0.09f, 0.11f, 1.0f });
 
         program_->use();
         program_->set("u_texture", 0);
         texture_->bind(0);
-        vao_.bind();
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()),
-                       static_cast<GLenum>(vao_.index_type()), nullptr);
-        mini::gfx::VertexArray::unbind();
+        mini::gfx::Command::draw_indexed(vao_);
         mini::gfx::Program::unuse();
     }
 

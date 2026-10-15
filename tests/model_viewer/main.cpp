@@ -1,7 +1,9 @@
 #include "engine/application.h"
 #include "engine/layer.h"
+#include "gfx/command.h"
 #include "gfx/context.h"
 #include "gfx/index_buffer.h"
+#include "gfx/pipeline_state.h"
 #include "gfx/program.h"
 #include "gfx/shader.h"
 #include "gfx/uniform_buffer.h"
@@ -63,7 +65,8 @@ public:
         model_ = glm::scale(model_, glm::vec3(10.0f));
         model_ = glm::translate(model_, glm::vec3{0.0f,-1.0f,0.0f});
 
-        glEnable(GL_DEPTH_TEST);
+        pipeline_ = mini::gfx::PipelineState({ .depth_test = true });
+        mini::gfx::Command::apply(pipeline_);
 
         std::filesystem::path shaders_dir = SHADERS_DIR;
 
@@ -99,14 +102,11 @@ public:
     void on_detach() override {}
 
     void on_render() override {
-        glClearColor(0.08f, 0.09f, 0.11f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        mini::gfx::Command::clear({ 0.08f, 0.09f, 0.11f, 1.0f });
 
         program_->use();
         program_->set("u_model", model_);
-        vao_.bind();
-        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()), static_cast<GLenum>(vao_.index_type()), nullptr);
-        mini::gfx::VertexArray::unbind();
+        mini::gfx::Command::draw_indexed(vao_);
         mini::gfx::Program::unuse();
     }
 
@@ -129,6 +129,7 @@ private:
     glm::mat4 proj_;
     glm::vec3 view_pos_;
     CameraBlock camera_;
+    mini::gfx::PipelineState pipeline_;
     std::unique_ptr<mini::gfx::Shader> vertex_shader_;
     std::unique_ptr<mini::gfx::Shader> fragment_shader_;
     std::unique_ptr<mini::gfx::Program> program_;
