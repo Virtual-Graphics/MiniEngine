@@ -2,6 +2,7 @@
 #include "engine/application.h"
 #include "engine/layer.h"
 #include "gfx/command.h"
+#include "gfx/debug.h"
 #include "gfx/index_buffer.h"
 #include "gfx/pipeline_state.h"
 #include "gfx/program.h"
@@ -44,13 +45,13 @@ public:
     void on_attach() override {
         auto& window = application().get_window();
 
-        mini::gfx::RenderTargetSpec target_spec;
+        mini::gfx::RenderTarget::Spec target_spec;
         target_spec.width = window.width();
         target_spec.height = window.height();
         target_spec.color_format = mini::gfx::Image::Format::RGBA8;
-        target_spec.with_depth = true;
         target_spec.depth_format = mini::gfx::Image::Format::Depth24Stencil8;
         render_target_ = std::make_unique<mini::gfx::RenderTarget>(target_spec);
+        mini::gfx::set_object_label(GL_TEXTURE, render_target_->color().image().id(), "render target color");
 
         std::filesystem::path assets_dir = ASSETS_DIR;
         mesh_ = std::make_unique<mini::Mesh>(mini::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj"));
@@ -118,6 +119,7 @@ public:
         screen_program_->attach(*screen_fragment_shader_);
         screen_program_->link();
 
+        camera_ubo_.set_data(camera_, 0);
         update_camera();
     }
 
@@ -149,10 +151,13 @@ public:
         render_target_->bind();
         render_target_->clear(clear_color_, 1.0f);
 
-        mini::gfx::Command::apply(mesh_pipeline_);
-        program_->use();
-        program_->set("u_model", model_);
-        mini::gfx::Command::draw_indexed(mesh_vao_);
+        {
+            mini::gfx::DebugScope scope("mesh pass");
+            mini::gfx::Command::apply(mesh_pipeline_);
+            program_->use();
+            program_->set("u_model", model_);
+            mini::gfx::Command::draw_indexed(mesh_vao_);
+        }
 
         mini::gfx::RenderTarget::unbind();
 
@@ -160,19 +165,22 @@ public:
         mini::gfx::Command::set_viewport(window.width(), window.height());
         mini::gfx::Command::clear(clear_color_, 1.0f);
 
-        mini::gfx::Command::apply(screen_pipeline_);
-        screen_program_->use();
-        screen_program_->set("u_texture", 0);
-        render_target_->color().bind(0);
-        mini::gfx::Command::draw_indexed(quad_vao_);
-        mini::gfx::Program::unuse();
+        {
+            mini::gfx::DebugScope scope("screen pass");
+            mini::gfx::Command::apply(screen_pipeline_);
+            screen_program_->use();
+            screen_program_->set("u_texture", 0);
+            render_target_->color().bind(0);
+            mini::gfx::Command::draw_indexed(quad_vao_);
+            mini::gfx::Program::unuse();
+        }
     }
 
 private:
     void update_camera() {
         camera_.view_proj = proj_ * view_;
         camera_.view_pos = view_pos_;
-        camera_ubo_.set_data(camera_, 0);
+        camera_ubo_.set_sub_data(camera_, 0);
     }
 
     std::unique_ptr<mini::gfx::RenderTarget> render_target_;

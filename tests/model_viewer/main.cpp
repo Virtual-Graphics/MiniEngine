@@ -80,6 +80,7 @@ public:
         program_->link();
         program_->bind_uniform_block("CameraBlock", 0);
 
+        camera_ubo_.set_data(camera_, 0);
         update_camera();
     }
 
@@ -114,7 +115,7 @@ private:
     void update_camera() {
         camera_.view_proj = proj_ * view_;
         camera_.view_pos = view_pos_;
-        camera_ubo_.set_data(camera_, 0);
+        camera_ubo_.set_sub_data(camera_, 0);
     }
 
     mini::gfx::VertexBuffer vbo_;

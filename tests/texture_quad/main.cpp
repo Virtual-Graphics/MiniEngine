@@ -59,14 +59,13 @@ public:
         std::filesystem::path assets_dir = ASSETS_DIR;
         const mini::asset::ImageData data = mini::asset::load_image(assets_dir / "artichoke.jpg", 4);
 
-        mini::gfx::Image image(mini::gfx::Image::Format::RGBA8, data.width, data.height);
+        mini::gfx::Image image(mini::gfx::Image::Format::RGBA8, data.width, data.height,
+                               mini::gfx::Image::mip_count(data.width, data.height));
         image.set_data(data.pixels.data());
+        image.generate_mipmaps();
 
-        mini::gfx::Sampler::Spec spec;
-        spec.min_filter = mini::gfx::Sampler::Filter::Linear;
-        spec.mag_filter = mini::gfx::Sampler::Filter::Linear;
-        spec.wrap_s = mini::gfx::Sampler::Wrap::ClampToEdge;
-        spec.wrap_t = mini::gfx::Sampler::Wrap::ClampToEdge;
+        mini::gfx::Sampler::Spec spec = mini::gfx::Sampler::Spec::clamp_to_edge();
+        spec.min_filter = mini::gfx::Sampler::Filter::LinearMipmapLinear;
 
         texture_ = std::make_unique<mini::gfx::Texture>(std::move(image), mini::gfx::Sampler(spec));
 
