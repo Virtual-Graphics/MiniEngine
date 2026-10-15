@@ -23,7 +23,7 @@ inline ImageData load_image(const std::filesystem::path& path, int desired_chann
     int width = 0;
     int height = 0;
     int channels = 0;
-    stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channels, desired_channels);
+    stbi_uc* data = stbi_load(path.string().c_str(), &width, &height, &channels, desired_channels);
     if (!data) {
         const char* reason = stbi_failure_reason();
         base::log::error("failed to load image: {} ({})", path.string(), reason ? reason : "unknown");

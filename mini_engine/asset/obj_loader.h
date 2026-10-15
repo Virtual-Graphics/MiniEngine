@@ -14,7 +14,7 @@ static Mesh load_obj(const std::filesystem::path& path){
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    bool success = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str());
+    bool success = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.string().c_str());
 
     if (!warn.empty()) {
         base::log::warn("{}", warn);
@@ -28,11 +28,11 @@ static Mesh load_obj(const std::filesystem::path& path){
         return {};
     }
 
-    base::log::info("loaded obj: {}", path.c_str());
+    base::log::info("loaded obj: {}", path.string());
 
     bool has_normals = !attrib.normals.empty();
     if (!has_normals) {
-        base::log::warn("file: {}, does not have normal attributes", path.c_str());
+        base::log::warn("file: {}, does not have normal attributes", path.string());
     }
     
     Mesh mesh;
