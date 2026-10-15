@@ -4,6 +4,7 @@
 #include "gfx/index_buffer.h"
 #include "gfx/program.h"
 #include "gfx/shader.h"
+#include "gfx/uniform_buffer.h"
 #include "gfx/vertex_array.h"
 #include "gfx/vertex_buffer.h"
 #include "gfx/vertex_layout.h"
@@ -19,6 +20,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <vector>
+
+// Must match the std140 CameraBlock layout in the shaders.
+struct CameraBlock {
+    glm::mat4 view_proj;
+    glm::vec3 view_pos;
+    float _pad = 0.0f;
+};
+
+
 
 
 class ClearLayer : public engine::Layer {
@@ -53,8 +63,6 @@ public:
         model_ = glm::scale(model_, glm::vec3(10.0f));
         model_ = glm::translate(model_, glm::vec3{0.0f,-1.0f,0.0f});
 
-        view_proj_ = proj_ * view_;
-
         glEnable(GL_DEPTH_TEST);
 
         std::filesystem::path shaders_dir = SHADERS_DIR;
@@ -67,6 +75,9 @@ public:
         program_->attach(*vertex_shader_);
         program_->attach(*fragment_shader_);
         program_->link();
+        program_->bind_uniform_block("CameraBlock", 0);
+
+        update_camera();
     }
 
     void on_update(base::Timestep dt) override {
@@ -82,7 +93,7 @@ public:
         float aspect = static_cast<float>(application().get_window().width()) / static_cast<float>(application().get_window().height());
         proj_ = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 100.0f);
 
-        view_proj_ = proj_ * view_;
+        update_camera();
     }
 
     void on_detach() override {}
@@ -93,8 +104,6 @@ public:
 
         program_->use();
         program_->set("u_model", model_);
-        program_->set("u_view_proj", view_proj_);
-        program_->set("u_view_pos", view_pos_);
         vao_.bind();
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vao_.index_count()), static_cast<GLenum>(vao_.index_type()), nullptr);
         mini::gfx::VertexArray::unbind();
@@ -102,17 +111,24 @@ public:
     }
 
 private:
+    void update_camera() {
+        camera_.view_proj = proj_ * view_;
+        camera_.view_pos = view_pos_;
+        camera_ubo_.set_data(camera_, 0);
+    }
+
     mini::gfx::VertexBuffer vbo_;
     mini::gfx::IndexBuffer ibo_;
     mini::gfx::VertexArray vao_;
+    mini::gfx::UniformBuffer camera_ubo_;
     std::unique_ptr<mini::Mesh> mesh_;
     float angle_ = 0;
     float rotate_speed_ = 60.0;
     glm::mat4 model_;
     glm::mat4 view_;
     glm::mat4 proj_;
-    glm::mat4 view_proj_;
     glm::vec3 view_pos_;
+    CameraBlock camera_;
     std::unique_ptr<mini::gfx::Shader> vertex_shader_;
     std::unique_ptr<mini::gfx::Shader> fragment_shader_;
     std::unique_ptr<mini::gfx::Program> program_;

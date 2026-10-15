@@ -3,6 +3,7 @@
 #include "base/logger.h"
 #include "shader.h"
 #include <stdexcept>
+#include <cstdint>
 #include <glm/glm.hpp> 
 #include <glm/gtc/type_ptr.hpp>
 #include <unordered_map>
@@ -37,6 +38,15 @@ public:
 
     void use() const { glUseProgram(id_); }
     static void unuse() { glUseProgram(0); }
+
+    void bind_uniform_block(const char* name, std::uint32_t binding) {
+        const GLuint index = glGetUniformBlockIndex(id_, name);
+        if (index == GL_INVALID_INDEX) {
+            base::log::error("uniform block not found: {}", name);
+            return;
+        }
+        glUniformBlockBinding(id_, index, binding);
+    }
 
     void set(const char* name, float v)            { glUniform1f(location(name), v); }
     void set(const char* name, int v)              { glUniform1i(location(name), v); }

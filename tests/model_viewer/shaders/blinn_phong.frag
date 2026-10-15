@@ -5,8 +5,10 @@ in vec3 v_normal;
 
 out vec4 f_color;
 
-
-uniform vec3 u_view_pos;
+layout (std140, binding = 0) uniform CameraBlock {
+    mat4 u_view_proj;
+    vec3 u_view_pos;
+};
 
 const vec3  light_pos      = vec3(15.0, 15.0, 15.0);
 const vec3  light_color    = vec3(1.0);
