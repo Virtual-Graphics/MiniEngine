@@ -63,4 +63,20 @@ inline void init_debug_output() {
     glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
 }
 
+class DebugScope {
+public:
+    explicit DebugScope(const char* name) {
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name);
+    }
+
+    ~DebugScope() { glPopDebugGroup(); }
+
+    DebugScope(const DebugScope&) = delete;
+    DebugScope& operator=(const DebugScope&) = delete;
+};
+
+inline void set_object_label(GLenum identifier, GLuint id, const char* label) {
+    glObjectLabel(identifier, id, -1, label);
+}
+
 } // namespace mini::gfx

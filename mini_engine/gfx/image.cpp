@@ -1,5 +1,10 @@
 #include "gfx/image.h"
 
+#include "base/logger.h"
+#include <algorithm>
+#include <bit>
+#include <stdexcept>
+
 namespace mini::gfx {
 
 namespace {
@@ -28,25 +33,49 @@ FormatInfo format_info(Image::Format format) {
 
 }
 
-Image::Image(Format format, std::uint32_t width, std::uint32_t height)
+Image::Image(Format format, std::uint32_t width, std::uint32_t height, std::uint32_t mip_levels)
         : Object([](GLuint id) { glDeleteTextures(1, &id); }),
           width_(width),
           height_(height),
+          mip_levels_(mip_levels),
           format_(format) {
+    if (mip_levels_ == 0) {
+        throw std::invalid_argument("Image mip levels must be non-zero");
+    }
+
     glCreateTextures(GL_TEXTURE_2D, 1, &id_);
 
     const FormatInfo info = format_info(format);
-    glTextureStorage2D(id_, 1, info.internal_format, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+    glTextureStorage2D(id_, static_cast<GLsizei>(mip_levels_), info.internal_format, 
+                static_cast<GLsizei>(width), static_cast<GLsizei>(height));
 
     glTextureParameteri(id_, GL_TEXTURE_BASE_LEVEL, 0);
-    glTextureParameteri(id_, GL_TEXTURE_MAX_LEVEL, 0);
+    glTextureParameteri(id_, GL_TEXTURE_MAX_LEVEL, static_cast<GLint>(mip_levels_ - 1));
 }
 
 void Image::set_data(const void* pixels, std::uint32_t mip_level) {
+    if (mip_level >= mip_levels_) {
+        throw std::invalid_argument("Image mip level out of range");
+    }
+
     const FormatInfo info = format_info(format_);
+    const std::uint32_t width = std::max(1u, width_ >> mip_level);
+    const std::uint32_t height = std::max(1u, height_ >> mip_level);
     glTextureSubImage2D(id_, static_cast<GLint>(mip_level), 0, 0,
-                        static_cast<GLsizei>(width_), static_cast<GLsizei>(height_),
+                        static_cast<GLsizei>(width), static_cast<GLsizei>(height),
                         info.pixel_format, info.pixel_type, pixels);
+}
+
+void Image::generate_mipmaps() {
+    if (mip_levels_ <= 1) {
+        base::log::warn("Image::generate_mipmaps called with a single mip level");
+        return;
+    }
+    glGenerateTextureMipmap(id_);
+}
+
+std::uint32_t Image::mip_count(std::uint32_t width, std::uint32_t height) {
+    return std::max(1u, static_cast<std::uint32_t>(std::bit_width(std::max(width, height))));
 }
 
 }

@@ -33,6 +33,25 @@ public:
         glNamedBufferData(id_, static_cast<GLsizeiptr>(size), data, static_cast<GLenum>(usage));
     }
 
+    template<typename T>
+    void set_sub_data(const T& data, std::size_t offset = 0) {
+        set_sub_data(static_cast<const void*>(&data), sizeof(T), offset);
+    }
+
+    template<typename T>
+    void set_sub_data(const T* data, std::size_t count, std::size_t offset = 0) {
+        set_sub_data(static_cast<const void*>(data), count * sizeof(T), offset);
+    }
+
+    template<typename T>
+    void set_sub_data(const std::vector<T>& data, std::size_t offset = 0) {
+        set_sub_data(data.data(), data.size() * sizeof(T), offset);
+    }
+
+    void set_sub_data(const void* data, std::size_t size, std::size_t offset = 0) {
+        glNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(size), data);
+    }
+
     std::size_t size() const {
         return size_;
     }

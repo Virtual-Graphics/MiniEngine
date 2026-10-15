@@ -3,6 +3,7 @@
 #include "base/logger.h"
 #include "shader.h"
 #include <stdexcept>
+#include <cstddef>
 #include <cstdint>
 #include <glm/glm.hpp> 
 #include <glm/gtc/type_ptr.hpp>
@@ -50,13 +51,40 @@ public:
 
     void set(const char* name, float v)            { glUniform1f(location(name), v); }
     void set(const char* name, int v)              { glUniform1i(location(name), v); }
+    void set(const char* name, std::uint32_t v)    { glUniform1ui(location(name), v); }
 
     void set(const char* name, const glm::vec2& v) { glUniform2fv(location(name), 1, glm::value_ptr(v)); }
     void set(const char* name, const glm::vec3& v) { glUniform3fv(location(name), 1, glm::value_ptr(v)); }
     void set(const char* name, const glm::vec4& v) { glUniform4fv(location(name), 1, glm::value_ptr(v)); }
 
+    void set(const char* name, const glm::ivec2& v) { glUniform2iv(location(name), 1, glm::value_ptr(v)); }
+    void set(const char* name, const glm::ivec3& v) { glUniform3iv(location(name), 1, glm::value_ptr(v)); }
+    void set(const char* name, const glm::ivec4& v) { glUniform4iv(location(name), 1, glm::value_ptr(v)); }
+
+    void set(const char* name, const glm::uvec2& v) { glUniform2uiv(location(name), 1, glm::value_ptr(v)); }
+    void set(const char* name, const glm::uvec3& v) { glUniform3uiv(location(name), 1, glm::value_ptr(v)); }
+    void set(const char* name, const glm::uvec4& v) { glUniform4uiv(location(name), 1, glm::value_ptr(v)); }
+
     void set(const char* name, const glm::mat3& v) { glUniformMatrix3fv(location(name), 1, GL_FALSE, glm::value_ptr(v)); }
     void set(const char* name, const glm::mat4& v) { glUniformMatrix4fv(location(name), 1, GL_FALSE, glm::value_ptr(v)); }
+
+    void set(const char* name, const float* v, std::size_t count)          { glUniform1fv(location(name), static_cast<GLsizei>(count), v); }
+    void set(const char* name, const glm::vec2* v, std::size_t count)      { glUniform2fv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+    void set(const char* name, const glm::vec3* v, std::size_t count)      { glUniform3fv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+    void set(const char* name, const glm::vec4* v, std::size_t count)      { glUniform4fv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+
+    void set(const char* name, const int* v, std::size_t count)            { glUniform1iv(location(name), static_cast<GLsizei>(count), v); }
+    void set(const char* name, const glm::ivec2* v, std::size_t count)     { glUniform2iv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+    void set(const char* name, const glm::ivec3* v, std::size_t count)     { glUniform3iv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+    void set(const char* name, const glm::ivec4* v, std::size_t count)     { glUniform4iv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+
+    void set(const char* name, const std::uint32_t* v, std::size_t count)  { glUniform1uiv(location(name), static_cast<GLsizei>(count), v); }
+    void set(const char* name, const glm::uvec2* v, std::size_t count)     { glUniform2uiv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+    void set(const char* name, const glm::uvec3* v, std::size_t count)     { glUniform3uiv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+    void set(const char* name, const glm::uvec4* v, std::size_t count)     { glUniform4uiv(location(name), static_cast<GLsizei>(count), glm::value_ptr(*v)); }
+
+    void set(const char* name, const glm::mat3* v, std::size_t count)      { glUniformMatrix3fv(location(name), static_cast<GLsizei>(count), GL_FALSE, glm::value_ptr(*v)); }
+    void set(const char* name, const glm::mat4* v, std::size_t count)      { glUniformMatrix4fv(location(name), static_cast<GLsizei>(count), GL_FALSE, glm::value_ptr(*v)); }
 private:
     static std::string info_log(GLuint id) {
         GLint len = 0;
