@@ -1,5 +1,7 @@
 #include "gfx/sampler.h"
 
+#include <glm/gtc/type_ptr.hpp>
+
 namespace mini::gfx {
 
 GLenum Sampler::to_gl(Filter filter) {
@@ -33,6 +35,19 @@ Sampler::Sampler(const Spec& spec)
     glSamplerParameteri(id_, GL_TEXTURE_WRAP_S, static_cast<GLint>(to_gl(spec.wrap_s)));
     glSamplerParameteri(id_, GL_TEXTURE_WRAP_T, static_cast<GLint>(to_gl(spec.wrap_t)));
     glSamplerParameteri(id_, GL_TEXTURE_WRAP_R, static_cast<GLint>(to_gl(spec.wrap_r)));
+
+    glSamplerParameterf(id_, GL_TEXTURE_MIN_LOD, spec.min_lod);
+    glSamplerParameterf(id_, GL_TEXTURE_MAX_LOD, spec.max_lod);
+    glSamplerParameterf(id_, GL_TEXTURE_LOD_BIAS, spec.lod_bias);
+    glSamplerParameterf(id_, GL_TEXTURE_MAX_ANISOTROPY, spec.max_anisotropy);
+    glSamplerParameterfv(id_, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(spec.border_color));
+
+    if (spec.compare_func) {
+        glSamplerParameteri(id_, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+        glSamplerParameteri(id_, GL_TEXTURE_COMPARE_FUNC, static_cast<GLint>(mini::gfx::to_gl(*spec.compare_func)));
+    } else {
+        glSamplerParameteri(id_, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+    }
 }
 
 }

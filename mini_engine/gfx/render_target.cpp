@@ -13,12 +13,12 @@ bool is_depth_format(Image::Format format) {
 
 } // namespace
 
-RenderTarget::RenderTarget(const RenderTargetSpec& spec)
+RenderTarget::RenderTarget(const Spec& spec)
         : spec_(spec) {
     if (spec_.width == 0 || spec_.height == 0) {
         throw std::invalid_argument("RenderTarget size must be non-zero");
     }
-    if (spec_.with_depth && !is_depth_format(spec_.depth_format)) {
+    if (spec_.depth_format && !is_depth_format(*spec_.depth_format)) {
         throw std::invalid_argument("RenderTarget depth format is not a depth format");
     }
     create();
@@ -58,9 +58,9 @@ void RenderTarget::create() {
     frame_buffer_.attach_color(color_->image());
     frame_buffer_.set_draw_buffers({ 0 });
 
-    if (spec_.with_depth) {
-        depth_ = std::make_unique<Image>(spec_.depth_format, spec_.width, spec_.height);
-        if (spec_.depth_format == Image::Format::Depth24Stencil8) {
+    if (spec_.depth_format) {
+        depth_ = std::make_unique<Image>(*spec_.depth_format, spec_.width, spec_.height);
+        if (*spec_.depth_format == Image::Format::Depth24Stencil8) {
             frame_buffer_.attach_depth_stencil(*depth_);
         } else {
             frame_buffer_.attach_depth(*depth_);
@@ -73,7 +73,7 @@ void RenderTarget::create() {
         throw std::runtime_error("RenderTarget framebuffer incomplete");
     }
 
-    base::log::info("RenderTarget created: {}x{} (depth: {})", spec_.width, spec_.height, spec_.with_depth ? "on" : "off");
+    base::log::info("RenderTarget created: {}x{} (depth: {})", spec_.width, spec_.height, spec_.depth_format ? "on" : "off");
 }
 
 } // namespace mini::gfx

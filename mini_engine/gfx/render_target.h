@@ -5,27 +5,21 @@
 #include "texture.h"
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 namespace mini::gfx {
 
-struct RenderTargetSpec {
-    std::uint32_t width = 1;
-    std::uint32_t height = 1;
-    Image::Format color_format = Image::Format::RGBA8;
-    bool with_depth = true;
-    Image::Format depth_format = Image::Format::Depth24Stencil8;
-    Sampler::Spec sampler = {
-        .min_filter = Sampler::Filter::Linear,
-        .mag_filter = Sampler::Filter::Linear,
-        .wrap_s = Sampler::Wrap::ClampToEdge,
-        .wrap_t = Sampler::Wrap::ClampToEdge,
-        .wrap_r = Sampler::Wrap::ClampToEdge,
-    };
-};
-
 class RenderTarget {
 public:
-    explicit RenderTarget(const RenderTargetSpec& spec);
+    struct Spec {
+        std::uint32_t width = 1;
+        std::uint32_t height = 1;
+        Image::Format color_format = Image::Format::RGBA8;
+        std::optional<Image::Format> depth_format = Image::Format::Depth24Stencil8;
+        Sampler::Spec sampler = Sampler::Spec::clamp_to_edge();
+    };
+
+    explicit RenderTarget(const Spec& spec);
 
     void resize(std::uint32_t width, std::uint32_t height);
 
@@ -46,7 +40,7 @@ public:
 private:
     void create();
 
-    RenderTargetSpec spec_;
+    Spec spec_;
     std::unique_ptr<Texture> color_;
     std::unique_ptr<Image> depth_;
     FrameBuffer frame_buffer_;

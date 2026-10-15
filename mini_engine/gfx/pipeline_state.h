@@ -1,4 +1,5 @@
 #pragma once
+#include "gfx/compare_func.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
@@ -6,17 +7,6 @@ namespace mini::gfx {
 
 class PipelineState {
 public:
-    enum class DepthFunc {
-        Never,
-        Less,
-        Equal,
-        LessEqual,
-        Greater,
-        NotEqual,
-        GreaterEqual,
-        Always,
-    };
-
     enum class CullFace {
         Front,
         Back,
@@ -52,7 +42,7 @@ public:
     struct Spec {
         bool depth_test = false;
         bool depth_write = true;
-        DepthFunc depth_func = DepthFunc::Less;
+        CompareFunc depth_func = CompareFunc::Less;
 
         bool cull = false;
         CullFace cull_face = CullFace::Back;
@@ -79,7 +69,6 @@ public:
     static void reset_cache();
 
 private:
-    static GLenum to_gl(DepthFunc func);
     static GLenum to_gl(CullFace face);
     static GLenum to_gl(FrontFace face);
     static GLenum to_gl(BlendFactor factor);

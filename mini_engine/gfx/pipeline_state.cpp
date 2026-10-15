@@ -30,20 +30,6 @@ StateCache g_cache;
 
 } // namespace
 
-GLenum PipelineState::to_gl(DepthFunc func) {
-    switch (func) {
-    case DepthFunc::Never:        return GL_NEVER;
-    case DepthFunc::Less:         return GL_LESS;
-    case DepthFunc::Equal:        return GL_EQUAL;
-    case DepthFunc::LessEqual:    return GL_LEQUAL;
-    case DepthFunc::Greater:      return GL_GREATER;
-    case DepthFunc::NotEqual:     return GL_NOTEQUAL;
-    case DepthFunc::GreaterEqual: return GL_GEQUAL;
-    case DepthFunc::Always:       return GL_ALWAYS;
-    }
-    return GL_LESS;
-}
-
 GLenum PipelineState::to_gl(CullFace face) {
     switch (face) {
     case CullFace::Front: return GL_FRONT;
@@ -107,7 +93,7 @@ void PipelineState::apply() const {
         g_cache.depth_write = spec_.depth_write;
     }
 
-    const GLenum depth_func = to_gl(spec_.depth_func);
+    const GLenum depth_func = mini::gfx::to_gl(spec_.depth_func);
     if (full || g_cache.depth_func != depth_func) {
         glDepthFunc(depth_func);
         g_cache.depth_func = depth_func;
