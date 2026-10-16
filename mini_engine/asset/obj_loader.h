@@ -2,13 +2,13 @@
 #include <filesystem>
 #include <string>
 #include "base/logger.h"
-#include "render/reources/mesh.h"
+#include "render/resources/mesh_data.h"
 #include "tiny_obj_loader.h"
 namespace mini::asset{
 
 class OBJImporter {
 public:
-static Mesh load_obj(const std::filesystem::path& path){
+static MeshData load_obj(const std::filesystem::path& path){
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -35,7 +35,7 @@ static Mesh load_obj(const std::filesystem::path& path){
         base::log::warn("file: {}, does not have normal attributes", path.string());
     }
     
-    Mesh mesh;
+    MeshData mesh;
     std::uint32_t next = 0;
 
     auto push_vertex = [&](glm::vec3 pos, glm::vec3 normal){

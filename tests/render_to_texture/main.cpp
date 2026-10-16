@@ -12,7 +12,7 @@
 #include "gfx/vertex_array.h"
 #include "gfx/vertex_buffer.h"
 #include "gfx/vertex_layout.h"
-#include "render/reources/mesh.h"
+#include "render/resources/mesh_data.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -54,7 +54,7 @@ public:
         mini::gfx::set_object_label(GL_TEXTURE, render_target_->color().image().id(), "render target color");
 
         std::filesystem::path assets_dir = ASSETS_DIR;
-        mesh_ = std::make_unique<mini::Mesh>(mini::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj"));
+        mesh_ = std::make_unique<mini::MeshData>(mini::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj"));
 
         vbo_.set_data(mesh_->vertices_);
         ibo_.set_data(mesh_->indices_, mini::gfx::IndexBuffer::Type::Uint32);
@@ -191,7 +191,7 @@ private:
     mini::gfx::IndexBuffer quad_ibo_;
     mini::gfx::VertexArray quad_vao_;
     mini::gfx::UniformBuffer camera_ubo_;
-    std::unique_ptr<mini::Mesh> mesh_;
+    std::unique_ptr<mini::MeshData> mesh_;
     float angle_ = 0;
     float rotate_speed_ = 60.0;
     glm::mat4 model_;
