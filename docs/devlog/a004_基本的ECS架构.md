@@ -13,6 +13,7 @@ author : Artichoke
 - Mesh Renderer Component
 - Camera Component
 - Environment Component
+- Light Component
 
 并且我们的 Scene 应该提供一种复制的方法，因为未来我们的编辑器会实现类似 Edit Mode、Play Mode、Simulate Mode。当我们从 Edit Mode 切换到其他 Mode 的时候，这需要我们保存现有的 Scene ，然后切换到其他 Mode ，这会导致 Scene 发生变化，我们希望在返回 Edit Mode 的时候能够恢复刚开始的样子。
 
