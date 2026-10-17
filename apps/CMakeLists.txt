@@ -1,1 +1,1 @@
-# Applications built on top of MiniEngine live here.
+add_subdirectory(model_viewer)

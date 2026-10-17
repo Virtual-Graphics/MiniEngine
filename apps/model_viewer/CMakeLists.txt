@@ -1,4 +1,4 @@
-set(ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../assets")
+set(ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../assets")
 
 add_executable(model_viewer main.cpp)
 

@@ -1,5 +1,5 @@
 set(SHADERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../shaders")
-set(ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../assets")
+set(ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../assets")
 
 add_executable(texture_quad main.cpp)
 
