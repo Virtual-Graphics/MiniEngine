@@ -22,6 +22,32 @@ public:
     render::RenderData extract(const Scene& scene, const Options& options) const;
 
 private:
+    static render::DirectionalLight make_directional_light(const LightComponent& light) {
+        return render::DirectionalLight{
+            .direction_ = light.direction_,
+            .color_ = light.color_,
+            .intensity_ = light.intensity_,
+            .shadow_ =
+                    render::DirectionalLightShadow{
+                        .enabled_ = light.shadow_enabled_,
+                        .map_size_ = light.shadow_map_size_,
+                        .center_ = light.shadow_center_,
+                        .extent_ = light.shadow_extent_,
+                        .near_ = light.shadow_near_,
+                        .far_ = light.shadow_far_,
+                        .depth_bias_ = light.shadow_depth_bias_,
+                        .normal_bias_ = light.shadow_normal_bias_,
+                    },
+        };
+    }
+
+    static render::Environment make_environment(const EnvironmentComponent& environment) {
+        return render::Environment{
+            .ambient_color_ = environment.ambient_color_,
+            .clear_color_ = environment.clear_color_,
+        };
+    }
+
     static render::CameraData make_camera_data(const CameraComponent& camera, const glm::mat4& world_transform) {
         if (camera.projection_type_ == CameraComponent::ProjectionType::Perspective) {
             const render::PerspectiveCamera::Spec spec{

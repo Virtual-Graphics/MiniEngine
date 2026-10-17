@@ -167,9 +167,17 @@ void test_scene_copy() {
 
     auto environment_entity = scene.create_entity("Environment");
     auto& environment = environment_entity.add_component<mini::scene::EnvironmentComponent>();
-    environment.environment_.ambient_color_ = glm::vec3{ 0.2f, 0.3f, 0.4f };
-    environment.directional_light_ = mini::render::DirectionalLight{};
-    environment.directional_light_->intensity_ = 2.0f;
+    environment.ambient_color_ = glm::vec3{ 0.2f, 0.3f, 0.4f };
+    environment.clear_color_ = glm::vec4{ 0.5f, 0.6f, 0.7f, 1.0f };
+
+    auto light_entity = scene.create_entity("Light");
+    auto& light = light_entity.add_component<mini::scene::LightComponent>();
+    light.direction_ = glm::vec3{ -1.0f };
+    light.color_ = glm::vec3{ 1.0f };
+    light.intensity_ = 2.0f;
+    light.shadow_enabled_ = false;
+    light.shadow_map_size_ = 1024;
+    light.shadow_extent_ = 6.0f;
 
     const auto source_id = source.get_component<mini::scene::IDComponent>().id_;
     const auto source_translation = source.get_component<mini::scene::TransformComponent>().translation_;
@@ -190,9 +198,18 @@ void test_scene_copy() {
     check(!environment_view.empty(), "scene copy should preserve environment components");
     if (!environment_view.empty()) {
         const auto& copied_environment = environment_view.get<const mini::scene::EnvironmentComponent>(environment_view.front());
-        check_near(copied_environment.environment_.ambient_color_, glm::vec3{ 0.2f, 0.3f, 0.4f },
-                "scene copy should preserve environment data");
-        check(copied_environment.directional_light_.has_value(), "scene copy should preserve directional light");
+        check_near(copied_environment.ambient_color_, glm::vec3{ 0.2f, 0.3f, 0.4f }, "scene copy should preserve environment data");
+        check_near(glm::vec3{ copied_environment.clear_color_ }, glm::vec3{ 0.5f, 0.6f, 0.7f }, "scene copy should preserve clear color");
+    }
+
+    const auto light_view = copy.registry().view<const mini::scene::LightComponent>();
+    check(!light_view.empty(), "scene copy should preserve light components");
+    if (!light_view.empty()) {
+        const auto& copied_light = light_view.get<const mini::scene::LightComponent>(light_view.front());
+        check_near(glm::vec3{ copied_light.direction_ }, glm::vec3{ -1.0f }, "scene copy should preserve light direction");
+        check_near(copied_light.intensity_, 2.0f, "scene copy should preserve light intensity");
+        check(!copied_light.shadow_enabled_, "scene copy should preserve shadow flags");
+        check_equal(copied_light.shadow_map_size_, 1024u, "scene copy should preserve shadow map size");
     }
 
     copied_source.get_component<mini::scene::TransformComponent>().translation_.x = 100.0f;
@@ -224,11 +241,22 @@ void test_scene_extractor() {
 
     auto environment_entity = scene.create_entity("Environment");
     auto& environment = environment_entity.add_component<mini::scene::EnvironmentComponent>();
-    environment.environment_.ambient_color_ = glm::vec3{ 0.1f, 0.2f, 0.3f };
-    environment.environment_.clear_color_ = glm::vec4{ 0.4f, 0.5f, 0.6f, 1.0f };
-    environment.directional_light_ = mini::render::DirectionalLight{};
-    environment.directional_light_->direction_ = glm::vec3{ -1.0f };
-    environment.directional_light_->intensity_ = 3.0f;
+    environment.ambient_color_ = glm::vec3{ 0.1f, 0.2f, 0.3f };
+    environment.clear_color_ = glm::vec4{ 0.4f, 0.5f, 0.6f, 1.0f };
+
+    auto light_entity = scene.create_entity("Light");
+    auto& light = light_entity.add_component<mini::scene::LightComponent>();
+    light.direction_ = glm::vec3{ -1.0f };
+    light.color_ = glm::vec3{ 1.0f };
+    light.intensity_ = 3.0f;
+    light.shadow_enabled_ = true;
+    light.shadow_map_size_ = 1024;
+    light.shadow_center_ = glm::vec3{ 0.0f, -0.5f, 0.0f };
+    light.shadow_extent_ = 6.0f;
+    light.shadow_near_ = 0.2f;
+    light.shadow_far_ = 30.0f;
+    light.shadow_depth_bias_ = 0.002f;
+    light.shadow_normal_bias_ = 0.03f;
 
     auto mesh_entity = scene.create_entity("Mesh");
     mesh_entity.get_component<mini::scene::TransformComponent>().translation_ = glm::vec3{ 1.0f, 2.0f, 3.0f };
@@ -257,9 +285,21 @@ void test_scene_extractor() {
                 "extracted world transform should match");
     }
     check_near(data.environment_.ambient_color_, glm::vec3{ 0.1f, 0.2f, 0.3f }, "extracted environment should match");
+    check_near(glm::vec3{ data.environment_.clear_color_ }, glm::vec3{ 0.4f, 0.5f, 0.6f }, "extracted clear color should match");
     check(data.directional_light_.has_value(), "extractor should include the directional light");
     if (data.directional_light_) {
+        check_near(glm::vec3{ data.directional_light_->direction_ }, glm::vec3{ -1.0f }, "extracted light direction should match");
+        check_near(glm::vec3{ data.directional_light_->color_ }, glm::vec3{ 1.0f }, "extracted light color should match");
         check_near(data.directional_light_->intensity_, 3.0f, "extracted light intensity should match");
+        check(data.directional_light_->shadow_.enabled_, "extracted shadow enabled flag should match");
+        check_equal(data.directional_light_->shadow_.map_size_, 1024u, "extracted shadow map size should match");
+        check_near(glm::vec3{ data.directional_light_->shadow_.center_ }, glm::vec3{ 0.0f, -0.5f, 0.0f },
+                "extracted shadow center should match");
+        check_near(data.directional_light_->shadow_.extent_, 6.0f, "extracted shadow extent should match");
+        check_near(data.directional_light_->shadow_.near_, 0.2f, "extracted shadow near should match");
+        check_near(data.directional_light_->shadow_.far_, 30.0f, "extracted shadow far should match");
+        check_near(data.directional_light_->shadow_.depth_bias_, 0.002f, "extracted shadow depth bias should match");
+        check_near(data.directional_light_->shadow_.normal_bias_, 0.03f, "extracted shadow normal bias should match");
     }
 
     camera.projection_type_ = mini::scene::CameraComponent::ProjectionType::Orthographic;

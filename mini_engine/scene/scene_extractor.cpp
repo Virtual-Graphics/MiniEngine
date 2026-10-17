@@ -53,9 +53,12 @@ render::RenderData SceneExtractor::extract(const Scene& scene, const Options& op
 
     const auto environment_view = scene.registry().view<const EnvironmentComponent>();
     if (!environment_view.empty()) {
-        const auto& environment = environment_view.get<const EnvironmentComponent>(environment_view.front());
-        data.environment_ = environment.environment_;
-        data.directional_light_ = environment.directional_light_;
+        data.environment_ = make_environment(environment_view.get<const EnvironmentComponent>(environment_view.front()));
+    }
+
+    const auto light_view = scene.registry().view<const LightComponent>();
+    if (!light_view.empty()) {
+        data.directional_light_ = make_directional_light(light_view.get<const LightComponent>(light_view.front()));
     }
 
     const auto render_view = scene.registry().view<const TransformComponent, const MeshRendererComponent>();

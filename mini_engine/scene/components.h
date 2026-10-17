@@ -1,11 +1,10 @@
 #pragma once
 
 #include "base/uuid.h"
-#include "render/render_data.h"
 #include "render/resources/resources_handle.h"
 
+#include <cstdint>
 #include <glm/glm.hpp>
-#include <optional>
 #include <string>
 
 namespace mini::scene {
@@ -53,9 +52,24 @@ struct CameraComponent {
     void set_aspect(float aspect);
 };
 
+struct LightComponent {
+    glm::vec3 direction_{ 0.0f, -1.0f, 0.0f };
+    glm::vec3 color_{ 1.0f };
+    float intensity_ = 1.0f;
+
+    bool shadow_enabled_ = true;
+    std::uint32_t shadow_map_size_ = 2048;
+    glm::vec3 shadow_center_{ 0.0f };
+    float shadow_extent_ = 10.0f;
+    float shadow_near_ = 0.1f;
+    float shadow_far_ = 50.0f;
+    float shadow_depth_bias_ = 0.0015f;
+    float shadow_normal_bias_ = 0.02f;
+};
+
 struct EnvironmentComponent {
-    render::Environment environment_;
-    std::optional<render::DirectionalLight> directional_light_;
+    glm::vec3 ambient_color_{ 0.1f };
+    glm::vec4 clear_color_{ 0.1f, 0.1f, 0.1f, 1.0f };
 };
 
 } // namespace mini::scene

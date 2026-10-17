@@ -22,6 +22,7 @@ Scene::Scene(const Scene& other) {
         copy_component<TransformComponent>(registry_, other.registry_, copy);
         copy_component<MeshRendererComponent>(registry_, other.registry_, copy);
         copy_component<CameraComponent>(registry_, other.registry_, copy);
+        copy_component<LightComponent>(registry_, other.registry_, copy);
         copy_component<EnvironmentComponent>(registry_, other.registry_, copy);
     }
 }

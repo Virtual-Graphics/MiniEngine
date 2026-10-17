@@ -66,19 +66,19 @@ public:
 
         auto environment_entity = scene_->create_entity("Environment");
         auto& environment = environment_entity.add_component<mini::scene::EnvironmentComponent>();
-        environment.environment_.ambient_color_ = glm::vec3{ 0.15f };
-        environment.environment_.clear_color_ = glm::vec4{ 0.08f, 0.09f, 0.11f, 1.0f };
+        environment.ambient_color_ = glm::vec3{ 0.15f };
+        environment.clear_color_ = glm::vec4{ 0.08f, 0.09f, 0.11f, 1.0f };
 
-        mini::render::DirectionalLight light;
+        auto light_entity = scene_->create_entity("Directional Light");
+        auto& light = light_entity.add_component<mini::scene::LightComponent>();
         light.direction_ = glm::vec3{ -1.0f, -1.0f, -1.0f };
         light.color_ = glm::vec3{ 1.0f };
         light.intensity_ = 1.0f;
-        light.shadow_.map_size_ = 2048;
-        light.shadow_.center_ = glm::vec3{ 0.0f, -0.5f, 0.0f };
-        light.shadow_.extent_ = 8.0f;
-        light.shadow_.near_ = 0.1f;
-        light.shadow_.far_ = 40.0f;
-        environment.directional_light_ = light;
+        light.shadow_map_size_ = 2048;
+        light.shadow_center_ = glm::vec3{ 0.0f, -0.5f, 0.0f };
+        light.shadow_extent_ = 8.0f;
+        light.shadow_near_ = 0.1f;
+        light.shadow_far_ = 40.0f;
 
         camera_entity_ = scene_->create_entity("Main Camera");
         auto& camera_transform = camera_entity_.get_component<mini::scene::TransformComponent>();
