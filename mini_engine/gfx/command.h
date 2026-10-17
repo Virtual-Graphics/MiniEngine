@@ -21,6 +21,7 @@ public:
     Command() = delete;
 
     static void set_viewport(std::uint32_t width, std::uint32_t height);
+    static glm::ivec4 viewport();
 
     static void clear(const glm::vec4& color, float depth = 1.0f);
     static void clear_color(const glm::vec4& color);

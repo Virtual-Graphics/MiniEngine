@@ -14,9 +14,11 @@ public:
     struct Spec {
         std::uint32_t width = 1;
         std::uint32_t height = 1;
-        Image::Format color_format = Image::Format::RGBA8;
+        // A depth-only target leaves color_format empty (shadow maps, etc.).
+        std::optional<Image::Format> color_format = Image::Format::RGBA8;
         std::optional<Image::Format> depth_format = Image::Format::Depth24Stencil8;
         Sampler::Spec sampler = Sampler::Spec::clamp_to_edge();
+        std::optional<Sampler::Spec> depth_sampler;
     };
 
     explicit RenderTarget(const Spec& spec);
@@ -30,8 +32,8 @@ public:
     void clear_color(const glm::vec4& color) const;
     void clear_depth(float depth = 1.0f) const;
 
-    const Texture& color() const { return *color_; }
-    const Image* depth() const { return depth_.get(); }
+    const Texture* color() const { return color_.get(); }
+    const Texture* depth() const { return depth_.get(); }
     const FrameBuffer& frame_buffer() const { return frame_buffer_; }
 
     std::uint32_t width() const { return spec_.width; }
@@ -42,7 +44,7 @@ private:
 
     Spec spec_;
     std::unique_ptr<Texture> color_;
-    std::unique_ptr<Image> depth_;
+    std::unique_ptr<Texture> depth_;
     FrameBuffer frame_buffer_;
 };
 

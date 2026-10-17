@@ -33,7 +33,7 @@ BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: BeforeColon
-ColumnLimit: 100
+ColumnLimit: 140
 CompactNamespaces: false
 ContinuationIndentWidth: 8
 Cpp11BracedListStyle: false

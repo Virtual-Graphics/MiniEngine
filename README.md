@@ -1,6 +1,6 @@
 # MiniEngine
 
-MiniEngine 如名字一样它是一个非常 Mini 的游戏引擎，但相比作者的第一代游戏引擎 [Fermion](https://github.com/Yang-Junjie/Fermion.git) 体量会大很多而且功能会更完善系统更 Robust 。除此之外作者还有一个名为 [FinalEngine](https://github.com/Yang-Junjie/FinalEngine.git) 的与 MiniEngine 的架构大致相同的游戏引擎，不过 FinalEngine 与 MiniEngine 不同的是其中的 Graphics Api 使用的是 Vulkan 并且有 AI 参与（大部分是 vibe coding），而 MiniEngine 所有的代码将大部分由我手写，并且使用 OpenGL 4.6 以及其中的大部分系统都会比 FinalEngine 轻量化很多。
+MiniEngine 如名字一样它是一个非常 Mini 的游戏引擎，但相比作者的第一代游戏引擎 [Fermion](https://github.com/Yang-Junjie/Fermion.git) 体量会大很多而且功能会更完善系统更 Robust 。除此之外作者还有一个名为 [FinalEngine](https://github.com/Yang-Junjie/FinalEngine.git) 的与 MiniEngine 的架构大致相同的游戏引擎，不过 FinalEngine 与 MiniEngine 不同的是其中的 Graphics Api 使用的是 Vulkan 并且有 AI 参与（大部分是 vibe coding），而 MiniEngine 将采用非 vibe coding 的形式，并且使用 OpenGL 4.6 以及其中的大部分系统都会比 FinalEngine 轻量化很多。
 
 ## 为什么开发一个新引擎
 说到这，我为什么又要开发一个游戏引擎，开发一个我心目中理想的游戏引擎一直都是我追随的目标，我认为我很大情况下是一个理想主义者，对于功利性的事我有点不感兴趣，即使它能给我带来财富，好了不扯远了，到目前为止加上现在这两个我已经开发 6 个完成度各不相同的引擎，它们的架构都不一样而它们的架构目标的都是向着我理想中游戏引擎的架构出发的，而我目前发现我自己的能力完全不足以实现这个目标，也许配上顶级 AI 我能做到，但是我自己将看不懂 AI 设计的各种复杂系统，所以我打算从自己熟悉的架构出发（也就是 [Hazel](https://github.com/TheCherno/Hazel)）再以这些日子我取得的进步再重新写一个非我理想架构的游戏引擎，这次应该能做得更好，也是为了回应之前在 [Fermion 视频](https://www.bilibili.com/video/BV13oAUzJEis/?spm_id_from=333.1387.homepage.video_card.click&vd_source=b60fadc84379e52fc7b933fab5a8751c)中提到的：“也许未来我还会开发一个新的更完整的游戏引擎”。

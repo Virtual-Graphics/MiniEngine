@@ -38,6 +38,11 @@ public:
                 attachments.data());
     }
 
+    void set_draw_buffers_none() {
+        glNamedFramebufferDrawBuffer(id_, GL_NONE);
+        glNamedFramebufferReadBuffer(id_, GL_NONE);
+    }
+
     GLenum status() const { return glCheckNamedFramebufferStatus(id_, GL_FRAMEBUFFER); }
 
     bool complete() const { return status() == GL_FRAMEBUFFER_COMPLETE; }

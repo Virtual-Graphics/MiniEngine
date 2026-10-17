@@ -9,7 +9,7 @@ struct Vertex {
     glm::vec3 normal;
 };
 
-class Mesh {
+class MeshData {
 public:
     std::vector<Vertex> vertices_;
     std::vector<std::uint32_t> indices_;
