@@ -18,4 +18,5 @@ target_link_libraries(mini_engine PUBLIC
     glm::glm
     tinyobjloader::tinyobjloader
     stb::stb_image
+    EnTT::EnTT
 )
