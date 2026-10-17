@@ -28,6 +28,24 @@ public:
         material.shininess_ = 8.0f;
         material_ = renderer_->create_material(material);
 
+        mini::MeshData ground_data;
+        const float half = 20.0f;
+        const float y = -1.05f;
+        ground_data.vertices_ = {
+            { { -half, y, -half }, { 0.0f, 1.0f, 0.0f } },
+            { { half, y, -half }, { 0.0f, 1.0f, 0.0f } },
+            { { half, y, half }, { 0.0f, 1.0f, 0.0f } },
+            { { -half, y, half }, { 0.0f, 1.0f, 0.0f } },
+        };
+        ground_data.indices_ = { 0, 1, 2, 2, 3, 0 };
+        ground_mesh_ = renderer_->create_mesh(ground_data);
+
+        mini::render::Material ground_material;
+        ground_material.diffuse_ = glm::vec3{ 0.55f, 0.57f, 0.6f };
+        ground_material.specular_ = glm::vec3{ 0.02f };
+        ground_material.shininess_ = 4.0f;
+        ground_material_ = renderer_->create_material(ground_material);
+
         camera_ = std::make_unique<mini::render::PerspectiveCamera>();
         update_camera();
     }
@@ -50,7 +68,9 @@ public:
 
     void on_render() override {
         mini::render::RenderData data;
-        data.camera_ = camera_->data(glm::translate(glm::mat4(1.0f), camera_position_));
+        const glm::mat4 camera_world = glm::inverse(glm::lookAt(
+                camera_position_, glm::vec3{ 0.0f, -0.5f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f }));
+        data.camera_ = camera_->data(camera_world);
         data.environment_.ambient_color_ = glm::vec3{ 0.15f };
         data.environment_.clear_color_ = clear_color_;
 
@@ -58,9 +78,15 @@ public:
         light.direction_ = glm::vec3{ -1.0f, -1.0f, -1.0f };
         light.color_ = glm::vec3{ 1.0f };
         light.intensity_ = 1.0f;
+        light.shadow_.map_size_ = 2048;
+        light.shadow_.center_ = glm::vec3{ 0.0f, -0.5f, 0.0f };
+        light.shadow_.extent_ = 8.0f;
+        light.shadow_.near_ = 0.1f;
+        light.shadow_.far_ = 40.0f;
         data.directional_light_ = light;
 
         data.items_.push_back(mini::render::RenderItem{ mesh_, material_, model_ });
+        data.items_.push_back(mini::render::RenderItem{ ground_mesh_, ground_material_, glm::mat4(1.0f) });
 
         renderer_->render(data);
     }
@@ -81,7 +107,9 @@ private:
     std::unique_ptr<mini::render::PerspectiveCamera> camera_;
     mini::render::MeshHandle mesh_;
     mini::render::MaterialHandle material_;
-    glm::vec3 camera_position_{ 0.0f, 0.0f, 5.0f };
+    mini::render::MeshHandle ground_mesh_;
+    mini::render::MaterialHandle ground_material_;
+    glm::vec3 camera_position_{ 0.0f, 4.0f, 8.0f };
     glm::mat4 model_{ 1.0f };
     float angle_ = 0.0f;
     float rotate_speed_ = 60.0f;

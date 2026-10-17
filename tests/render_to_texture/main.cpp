@@ -51,7 +51,7 @@ public:
         target_spec.color_format = mini::gfx::Image::Format::RGBA8;
         target_spec.depth_format = mini::gfx::Image::Format::Depth24Stencil8;
         render_target_ = std::make_unique<mini::gfx::RenderTarget>(target_spec);
-        mini::gfx::set_object_label(GL_TEXTURE, render_target_->color().image().id(), "render target color");
+        mini::gfx::set_object_label(GL_TEXTURE, render_target_->color()->image().id(), "render target color");
 
         std::filesystem::path assets_dir = ASSETS_DIR;
         mesh_ = std::make_unique<mini::MeshData>(mini::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj"));
@@ -170,7 +170,7 @@ public:
             mini::gfx::Command::apply(screen_pipeline_);
             screen_program_->use();
             screen_program_->set("u_texture", 0);
-            render_target_->color().bind(0);
+            render_target_->color()->bind(0);
             mini::gfx::Command::draw_indexed(quad_vao_);
             mini::gfx::Program::unuse();
         }

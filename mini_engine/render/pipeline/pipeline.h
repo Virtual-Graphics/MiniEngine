@@ -1,26 +1,26 @@
 #pragma once
-#include "gfx/pipeline_state.h"
-#include "gfx/program.h"
-#include "gfx/uniform_buffer.h"
-#include "render/renderer_data.h"
-#include "render/resources/material.h"
+#include "render/pipeline/pass.h"
+#include <memory>
+#include <vector>
 
 namespace mini::gfx {
 class RenderTarget;
-}
+} // namespace mini::gfx
+
 namespace mini::render {
 
-class MeshGPU;
+struct RenderData;
+
+// Owns the ordered passes. Passes run in creation order, so adding a pass is
+// just one more make_unique + push_back in the constructor.
 class Pipeline {
 public:
     Pipeline();
-    void prepare(const RenderData& data, gfx::RenderTarget* render_target);
-    void draw(const MeshGPU& mesh, const Material& material, const glm::mat4& world_transform);
-    void destroy();
+
+    void render(const RenderData& data, gfx::RenderTarget* target, const std::vector<DrawItem>& items);
+
 private:
-    gfx::Program program_;
-    gfx::UniformBuffer camera_ubo_;
-    gfx::PipelineState pipeline_state_;
+    std::vector<std::unique_ptr<Pass>> passes_;
 };
 
-}
+} // namespace mini::render

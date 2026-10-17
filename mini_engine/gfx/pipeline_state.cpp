@@ -24,6 +24,10 @@ struct StateCache {
     GLenum blend_eq_alpha = GL_FUNC_ADD;
 
     glm::bvec4 color_write{ true, true, true, true };
+
+    bool polygon_offset = false;
+    float polygon_offset_factor = 0.0f;
+    float polygon_offset_units = 0.0f;
 };
 
 StateCache g_cache;
@@ -156,6 +160,23 @@ void PipelineState::apply() const {
                     spec_.color_write.b ? GL_TRUE : GL_FALSE,
                     spec_.color_write.a ? GL_TRUE : GL_FALSE);
         g_cache.color_write = spec_.color_write;
+    }
+
+    if (full || g_cache.polygon_offset != spec_.polygon_offset) {
+        if (spec_.polygon_offset) {
+            glEnable(GL_POLYGON_OFFSET_FILL);
+        } else {
+            glDisable(GL_POLYGON_OFFSET_FILL);
+        }
+        g_cache.polygon_offset = spec_.polygon_offset;
+    }
+
+    if (spec_.polygon_offset &&
+            (full || g_cache.polygon_offset_factor != spec_.polygon_offset_factor ||
+                    g_cache.polygon_offset_units != spec_.polygon_offset_units)) {
+        glPolygonOffset(spec_.polygon_offset_factor, spec_.polygon_offset_units);
+        g_cache.polygon_offset_factor = spec_.polygon_offset_factor;
+        g_cache.polygon_offset_units = spec_.polygon_offset_units;
     }
 
     g_cache.valid = true;

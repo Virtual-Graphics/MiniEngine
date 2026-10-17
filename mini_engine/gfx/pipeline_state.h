@@ -57,6 +57,10 @@ public:
         BlendEquation blend_eq_alpha = BlendEquation::Add;
 
         glm::bvec4 color_write{ true, true, true, true };
+
+        bool polygon_offset = false;
+        float polygon_offset_factor = 0.0f;
+        float polygon_offset_units = 0.0f;
     };
 
     PipelineState() = default;

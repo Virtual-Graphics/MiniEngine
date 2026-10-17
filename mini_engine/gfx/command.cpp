@@ -1,6 +1,7 @@
 #include "gfx/command.h"
 
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace mini::gfx {
 
@@ -23,6 +24,12 @@ GLenum to_gl(Primitive primitive) {
 
 void Command::set_viewport(std::uint32_t width, std::uint32_t height) {
     glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+}
+
+glm::ivec4 Command::viewport() {
+    glm::ivec4 viewport{ 0 };
+    glGetIntegerv(GL_VIEWPORT, glm::value_ptr(viewport));
+    return viewport;
 }
 
 void Command::clear(const glm::vec4& color, float depth) {

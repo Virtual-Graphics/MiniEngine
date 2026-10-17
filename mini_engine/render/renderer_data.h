@@ -3,16 +3,29 @@
 #include "render/camera.h"
 #include "render/resources/resources_handle.h"
 
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <optional>
 #include <vector>
 
 namespace mini::render {
 
+struct DirectionalLightShadow {
+    bool enabled_ = true;
+    std::uint32_t map_size_ = 2048;
+    glm::vec3 center_{ 0.0f };
+    float extent_ = 10.0f;
+    float near_ = 0.1f;
+    float far_ = 50.0f;
+    float depth_bias_ = 0.0015f;
+    float normal_bias_ = 0.02f;
+};
+
 struct DirectionalLight {
     glm::vec3 direction_{ 0.0f, -1.0f, 0.0f };
     glm::vec3 color_{ 1.0f };
     float intensity_ = 1.0f;
+    DirectionalLightShadow shadow_;
 };
 
 struct Environment {

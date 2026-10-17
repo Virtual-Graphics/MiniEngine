@@ -16,7 +16,7 @@ std::uint64_t next_resource_id() {
     static std::uint64_t next{ 1 };
     return next++;
 }
-}
+} // namespace
 namespace mini::render {
 struct Renderer::Impl {
     std::unordered_map<std::uint64_t, std::unique_ptr<MeshGPU>> meshes_;
@@ -47,30 +47,33 @@ MaterialHandle Renderer::create_material(const Material& material) {
     return handle;
 }
 
-void Renderer::update_material(MaterialHandle handle, const Material &material) {
+void Renderer::update_material(MaterialHandle handle, const Material& material) {
     auto it = impl_->materials_.find(handle.value_);
     if (it == impl_->materials_.end()) {
         throw std::invalid_argument("Invalid material handle");
     }
     it->second = material;
-
 }
 
 void Renderer::destroy_material(MaterialHandle material) {
     if (impl_->materials_.erase(material.value_) == 0) {
         throw std::invalid_argument("Invalid material handle");
     }
-
 }
 
 void Renderer::render(const RenderData& data, gfx::RenderTarget* target) {
-    
+
     gfx::DebugScope scope("Renderer::render");
-    impl_->pipeline_.prepare(data, target);
-    for (const auto& imte: data.items_) {
-        impl_->pipeline_.draw(*impl_->meshes_.at(imte.mesh_.value_), impl_->materials_.at(imte.material_.value_), imte.world_transform_);
+
+    std::vector<DrawItem> items;
+    items.reserve(data.items_.size());
+    for (const auto& item: data.items_) {
+        items.push_back(DrawItem{ .mesh_ = impl_->meshes_.at(item.mesh_.value_).get(),
+            .material_ = &impl_->materials_.at(item.material_.value_),
+            .world_transform_ = item.world_transform_ });
     }
-    impl_->pipeline_.destroy();
+
+    impl_->pipeline_.render(data, target, items);
 }
 
-}
+} // namespace mini::render
