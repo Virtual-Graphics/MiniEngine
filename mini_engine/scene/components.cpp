@@ -11,13 +11,6 @@ glm::mat4 TransformComponent::matrix() const {
     return glm::scale(transform, scale_);
 }
 
-void CameraComponent::set_aspect(float aspect) { perspective_spec_.aspect_ = aspect; }
-
-render::CameraData CameraComponent::data(const glm::mat4& world_transform) const {
-    if (projection_type_ == ProjectionType::Perspective) {
-        return render::PerspectiveCamera{ perspective_spec_ }.data(world_transform);
-    }
-    return render::OrthographicCamera{ orthographic_spec_ }.data(world_transform);
-}
+void CameraComponent::set_aspect(float aspect) { perspective_aspect_ = aspect; }
 
 } // namespace mini::scene

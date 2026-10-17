@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base/uuid.h"
-#include "render/camera.h"
 #include "render/render_data.h"
 #include "render/resources/resources_handle.h"
 
@@ -38,11 +37,20 @@ struct CameraComponent {
 
     ProjectionType projection_type_ = ProjectionType::Perspective;
     bool primary_ = true;
-    render::PerspectiveCamera::Spec perspective_spec_;
-    render::OrthographicCamera::Spec orthographic_spec_;
+
+    float perspective_fov_y_ = glm::radians(45.0f);
+    float perspective_aspect_ = 1.0f;
+    float perspective_near_ = 0.1f;
+    float perspective_far_ = 100.0f;
+
+    float orthographic_left_ = -1.0f;
+    float orthographic_right_ = 1.0f;
+    float orthographic_bottom_ = -1.0f;
+    float orthographic_top_ = 1.0f;
+    float orthographic_near_ = 0.1f;
+    float orthographic_far_ = 100.0f;
 
     void set_aspect(float aspect);
-    render::CameraData data(const glm::mat4& world_transform) const;
 };
 
 struct EnvironmentComponent {

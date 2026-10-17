@@ -90,9 +90,9 @@ public:
 
         auto& camera = camera_entity_.add_component<mini::scene::CameraComponent>();
         camera.primary_ = true;
-        camera.perspective_spec_.fov_y_ = glm::radians(45.0f);
-        camera.perspective_spec_.near_ = 0.1f;
-        camera.perspective_spec_.far_ = 100.0f;
+        camera.perspective_fov_y_ = glm::radians(45.0f);
+        camera.perspective_near_ = 0.1f;
+        camera.perspective_far_ = 100.0f;
 
         update_camera_aspect();
     }

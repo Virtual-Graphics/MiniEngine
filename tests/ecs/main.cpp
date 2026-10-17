@@ -130,30 +130,14 @@ void test_transform_and_camera() {
     check_near(glm::vec3{ matrix * glm::vec4{ 1.0f, 0.0f, 0.0f, 1.0f } }, glm::vec3{ 3.0f, 2.0f, 3.0f },
             "transform matrix should apply scale");
 
-    transform.scale_ = glm::vec3{ 1.0f };
-
     mini::scene::CameraComponent camera;
-    camera.perspective_spec_.fov_y_ = glm::radians(60.0f);
-    camera.perspective_spec_.aspect_ = 1.5f;
-    camera.perspective_spec_.near_ = 0.1f;
-    camera.perspective_spec_.far_ = 100.0f;
-
-    const auto camera_data = camera.data(transform.matrix());
-    check_near(camera_data.position_, glm::vec3{ 1.0f, 2.0f, 3.0f }, "camera position should come from world transform");
-    check_near(glm::vec3{ camera_data.view_[3] }, glm::vec3{ -1.0f, -2.0f, -3.0f }, "camera view should be the inverse world transform");
+    camera.perspective_fov_y_ = glm::radians(60.0f);
+    camera.perspective_aspect_ = 1.5f;
+    camera.perspective_near_ = 0.1f;
+    camera.perspective_far_ = 100.0f;
 
     camera.set_aspect(2.0f);
-    check_near(camera.perspective_spec_.aspect_, 2.0f, "set_aspect should update the perspective spec");
-
-    camera.projection_type_ = mini::scene::CameraComponent::ProjectionType::Orthographic;
-    camera.orthographic_spec_ = mini::render::OrthographicCamera::Spec{ .left_ = -2.0f,
-        .right_ = 2.0f,
-        .bottom_ = -1.0f,
-        .top_ = 1.0f,
-        .near_ = 0.1f,
-        .far_ = 100.0f };
-    const auto ortho_data = camera.data(transform.matrix());
-    check_near(ortho_data.projection_[0][0], 0.5f, "orthographic projection should be used");
+    check_near(camera.perspective_aspect_, 2.0f, "set_aspect should update the perspective aspect");
 
     const glm::mat4 camera_world =
             glm::inverse(glm::lookAt(glm::vec3{ 0.0f, 4.0f, 8.0f }, glm::vec3{ 0.0f, -0.5f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f }));
@@ -179,7 +163,7 @@ void test_scene_copy() {
 
     auto& camera = source.add_component<mini::scene::CameraComponent>();
     camera.primary_ = true;
-    camera.perspective_spec_.fov_y_ = glm::radians(50.0f);
+    camera.perspective_fov_y_ = glm::radians(50.0f);
 
     auto environment_entity = scene.create_entity("Environment");
     auto& environment = environment_entity.add_component<mini::scene::EnvironmentComponent>();
@@ -233,10 +217,10 @@ void test_scene_extractor() {
     camera_entity.get_component<mini::scene::TransformComponent>().translation_ = glm::vec3{ 0.0f, 0.0f, 5.0f };
     auto& camera = camera_entity.add_component<mini::scene::CameraComponent>();
     camera.primary_ = true;
-    camera.perspective_spec_.fov_y_ = glm::radians(45.0f);
-    camera.perspective_spec_.aspect_ = 2.0f;
-    camera.perspective_spec_.near_ = 0.1f;
-    camera.perspective_spec_.far_ = 100.0f;
+    camera.perspective_fov_y_ = glm::radians(45.0f);
+    camera.perspective_aspect_ = 2.0f;
+    camera.perspective_near_ = 0.1f;
+    camera.perspective_far_ = 100.0f;
 
     auto environment_entity = scene.create_entity("Environment");
     auto& environment = environment_entity.add_component<mini::scene::EnvironmentComponent>();
@@ -262,6 +246,9 @@ void test_scene_extractor() {
     const auto data = extractor.extract(scene);
 
     check_near(data.camera_.position_, glm::vec3{ 0.0f, 0.0f, 5.0f }, "extractor should use the primary camera");
+    check_near(glm::vec3{ data.camera_.view_[3] }, glm::vec3{ 0.0f, 0.0f, -5.0f }, "extracted camera view should match");
+    const float expected_projection_00 = 1.0f / (camera.perspective_aspect_ * std::tan(camera.perspective_fov_y_ * 0.5f));
+    check_near(data.camera_.projection_[0][0], expected_projection_00, "extracted perspective projection should match");
     check_equal(data.items_.size(), static_cast<std::size_t>(1), "extractor should skip invisible renderers");
     if (data.items_.size() == 1) {
         check_equal(data.items_[0].mesh_.value_, 11ull, "extracted mesh handle should match");
@@ -274,6 +261,17 @@ void test_scene_extractor() {
     if (data.directional_light_) {
         check_near(data.directional_light_->intensity_, 3.0f, "extracted light intensity should match");
     }
+
+    camera.projection_type_ = mini::scene::CameraComponent::ProjectionType::Orthographic;
+    camera.orthographic_left_ = -2.0f;
+    camera.orthographic_right_ = 2.0f;
+    camera.orthographic_bottom_ = -1.0f;
+    camera.orthographic_top_ = 1.0f;
+    camera.orthographic_near_ = 0.1f;
+    camera.orthographic_far_ = 100.0f;
+    const auto ortho = extractor.extract(scene);
+    check_near(ortho.camera_.projection_[0][0], 0.5f, "extractor should build an orthographic projection");
+    camera.projection_type_ = mini::scene::CameraComponent::ProjectionType::Perspective;
 
     mini::render::CameraData override_camera;
     override_camera.view_ = glm::mat4{ 2.0f };

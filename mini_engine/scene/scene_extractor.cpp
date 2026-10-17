@@ -48,7 +48,7 @@ render::RenderData SceneExtractor::extract(const Scene& scene, const Options& op
         if (camera.camera_ == nullptr) {
             throw std::runtime_error("SceneExtractor: scene has no camera");
         }
-        data.camera_ = camera.camera_->data(camera.world_transform_);
+        data.camera_ = make_camera_data(*camera.camera_, camera.world_transform_);
     }
 
     const auto environment_view = scene.registry().view<const EnvironmentComponent>();
