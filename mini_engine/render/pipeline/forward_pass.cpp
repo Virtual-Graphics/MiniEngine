@@ -4,7 +4,7 @@
 #include "gfx/render_target.h"
 #include "gfx/texture.h"
 #include "gfx/vertex_array.h"
-#include "render/renderer_data.h"
+#include "render/render_data.h"
 #include "render/resources/mesh_gpu.h"
 
 namespace mini::render {

@@ -4,7 +4,7 @@
 #include "gfx/debug.h"
 #include "render/pipeline/forward_pass.h"
 #include "render/pipeline/shadow_pass.h"
-#include "render/renderer_data.h"
+#include "render/render_data.h"
 
 namespace mini::render {
 
