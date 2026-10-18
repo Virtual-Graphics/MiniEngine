@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gfx/context.h"
 #include "gfx/render_target.h"
 
 #include <memory>
@@ -8,7 +9,7 @@ namespace editor {
 
 class ViewportPanel {
 public:
-    void draw(bool& open, float camera_speed);
+    void draw(bool& open, float camera_speed, const mini::gfx::Context::Limits& limits);
     bool visible() const { return visible_; }
     bool focused() const { return focused_; }
     bool camera_requested() const { return camera_requested_; }

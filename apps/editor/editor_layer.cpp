@@ -76,7 +76,7 @@ void EditorLayer::on_update(base::Timestep dt) {
     draw_workspace();
     hierarchy_.draw(context_, hierarchy_open_);
     inspector_.draw(context_, inspector_open_);
-    viewport_.draw(viewport_open_, camera_.speed());
+    viewport_.draw(viewport_open_, camera_.speed(), application().get_graphics_context().limits());
     update_camera(dt);
     imgui_->end_frame();
 }
