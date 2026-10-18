@@ -9,4 +9,7 @@ FetchContent_Declare(
     FIND_PACKAGE_ARGS 
 )
 
+set(SDL_SHARED OFF CACHE BOOL "Build a shared version of SDL3")
+set(SDL_STATIC ON CACHE BOOL "Build a static version of SDL3")
+
 FetchContent_MakeAvailable(SDL3)
