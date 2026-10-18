@@ -100,8 +100,10 @@ static_assert(static_cast<uint32_t>(MouseButton::X2) == SDL_BUTTON_X2);
 } // namespace
 
 void InputState::Button::update(bool value, bool repeat) {
-    if (value && !down && !repeat) pressed = true;
-    if (!value && down) released = true;
+    // SDL's focus snapshot may already reflect the final state of queued events.
+    // Preserve the transitions carried by those events independently of that snapshot.
+    if (value && !repeat) pressed = true;
+    if (!value) released = true;
     down = value;
 }
 
@@ -140,8 +142,10 @@ void InputState::synchronize() {
 }
 void InputState::lose_focus() {
     focused_ = false;
-    for (auto& key: keys_) key.update(false);
-    for (auto& button: buttons_) button.update(false);
+    for (auto& key: keys_)
+        if (key.down) key.update(false);
+    for (auto& button: buttons_)
+        if (button.down) button.update(false);
     delta_x_ = delta_y_ = wheel_x_ = wheel_y_ = 0.0f;
 }
 void InputState::process_event(const SDL_Event& event) {

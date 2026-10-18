@@ -55,6 +55,21 @@ TEST_F(InputFrame, QuickTapRetainsBothTransitions) {
     EXPECT_FALSE(input.is_key_down(base::Key::A));
 }
 
+TEST_F(InputFrame, NonRepeatPressIsObservableWhenHeldStateWasAlreadySynchronized) {
+    input.process_event(key_event(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_W));
+    input.begin_frame();
+    // A focus snapshot can already contain the final held state when this event arrives.
+    input.process_event(key_event(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_W));
+    EXPECT_TRUE(input.is_key_pressed(base::Key::W));
+}
+
+TEST_F(InputFrame, ReleaseIsObservableWhenFocusSnapshotAlreadyReportsKeyUp) {
+    input.process_event(key_event(SDL_EVENT_KEY_UP, SDL_SCANCODE_W));
+    input.process_event(button_event(SDL_EVENT_MOUSE_BUTTON_UP, SDL_BUTTON_LEFT));
+    EXPECT_TRUE(input.is_key_released(base::Key::W));
+    EXPECT_TRUE(input.is_mouse_button_released(base::MouseButton::Left));
+}
+
 TEST_F(InputFrame, MouseButtonsHaveIndependentFrameTransitions) {
     input.process_event(button_event(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_RIGHT));
     input.process_event(button_event(SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_BUTTON_LEFT));
@@ -111,6 +126,8 @@ TEST_F(InputFrame, FocusLossReleasesHeldInputsAndIgnoresUnfocusedEvents) {
     EXPECT_TRUE(input.is_key_released(base::Key::W));
     EXPECT_FALSE(input.is_mouse_button_down(base::MouseButton::Right));
     EXPECT_TRUE(input.is_mouse_button_released(base::MouseButton::Right));
+    EXPECT_FALSE(input.is_key_released(base::Key::A));
+    EXPECT_FALSE(input.is_mouse_button_released(base::MouseButton::Left));
     EXPECT_EQ(input.mouse_delta(), (std::pair{ 0.0f, 0.0f }));
     input.process_event(key_event(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_W));
     EXPECT_FALSE(input.is_key_down(base::Key::W));
