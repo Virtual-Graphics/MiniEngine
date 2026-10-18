@@ -8,3 +8,10 @@ target_link_libraries(editor_state_test PRIVATE mini_engine GTest::gtest_main)
 
 include(GoogleTest)
 gtest_discover_tests(editor_state_test)
+
+if (BUILD_APPS)
+    # Headless ImGui interaction tests; no window or OpenGL context is required.
+    add_executable(editor_panel_test panels.cpp)
+    target_link_libraries(editor_panel_test PRIVATE mini_editor GTest::gtest_main)
+    gtest_discover_tests(editor_panel_test)
+endif()
