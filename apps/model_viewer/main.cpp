@@ -107,6 +107,7 @@ public:
     void on_update(base::Timestep dt) override {
         imgui_->begin_frame();
         draw_ui();
+        imgui_->end_frame();
 
         if (rotate_model_) {
             angle_ = std::fmod(angle_ + dt.get_seconds() * rotate_speed_, 360.0f);

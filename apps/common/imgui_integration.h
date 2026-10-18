@@ -20,7 +20,9 @@ public:
     ImGuiIntegration& operator=(const ImGuiIntegration&) = delete;
 
     void begin_frame();
-    // Submits the UI as an overlay to the window's default framebuffer.
+    // Ends the UI frame and finalizes draw data for render().
+    void end_frame();
+    // Submits the finalized UI as an overlay to the window's default framebuffer.
     void render();
 
     bool wants_mouse() const;

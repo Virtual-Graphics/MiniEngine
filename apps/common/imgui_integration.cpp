@@ -64,9 +64,13 @@ void ImGuiIntegration::begin_frame() {
     ImGui::NewFrame();
 }
 
-void ImGuiIntegration::render() {
+void ImGuiIntegration::end_frame() {
     ImGui::SetCurrentContext(context_);
     ImGui::Render();
+}
+
+void ImGuiIntegration::render() {
+    ImGui::SetCurrentContext(context_);
 
     // The overlay draws over the scene without clearing its framebuffer.
     mini::gfx::RenderTarget::unbind();
