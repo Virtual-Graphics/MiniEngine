@@ -71,10 +71,8 @@ void draw_camera(mini::scene::CameraComponent& camera) {
 
 void draw_light(mini::scene::LightComponent& light) {
     if (!section("Light")) return;
-    auto direction = light.direction_;
-    if (ImGui::DragFloat3("Direction", &direction.x, 0.01f, -1.0f, 1.0f, "%.3f", ImGuiSliderFlags_AlwaysClamp) && finite(direction) &&
-            glm::dot(direction, direction) > 1e-6f)
-        light.direction_ = direction;
+    ImGui::Text("Type: Directional");
+    ImGui::TextDisabled("Direction follows Transform rotation (local -Z).");
     ImGui::ColorEdit3("Color", &light.color_.x);
     bounded_drag("Intensity", light.intensity_, 0.0f, 100.0f);
     ImGui::Checkbox("Shadows", &light.shadow_enabled_);

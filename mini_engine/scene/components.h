@@ -52,8 +52,10 @@ struct CameraComponent {
     void set_aspect(float aspect);
 };
 
+enum class LightType { Directional };
+
 struct LightComponent {
-    glm::vec3 direction_{ 0.0f, -1.0f, 0.0f };
+    LightType type_ = LightType::Directional;
     glm::vec3 color_{ 1.0f };
     float intensity_ = 1.0f;
 

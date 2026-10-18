@@ -51,7 +51,8 @@ std::unique_ptr<mini::scene::Scene> create_default_scene(mini::render::Renderer&
 
     auto light_entity = scene->create_entity("Directional Light");
     auto& light = light_entity.add_component<mini::scene::LightComponent>();
-    light.direction_ = glm::vec3{ -1.0f };
+    light_entity.get_component<mini::scene::TransformComponent>().rotation_ =
+            glm::eulerAngles(glm::quatLookAt(glm::normalize(glm::vec3{ -1.0f }), glm::vec3{ 0.0f, 1.0f, 0.0f }));
     light.shadow_center_ = { 0.0f, -0.5f, 0.0f };
     light.shadow_extent_ = 8.0f;
     light.shadow_far_ = 40.0f;

@@ -215,7 +215,7 @@ TEST(SceneCopy, CopyPreservesEntitiesAndComponents) {
 
     auto light_entity = scene.create_entity("Light");
     auto& light = light_entity.add_component<mini::scene::LightComponent>();
-    light.direction_ = glm::vec3{ -1.0f };
+    light_entity.get_component<mini::scene::TransformComponent>().rotation_ = { 0.0f, glm::radians(90.0f), 0.0f };
     light.color_ = glm::vec3{ 1.0f };
     light.intensity_ = 2.0f;
     light.shadow_enabled_ = false;
@@ -244,7 +244,8 @@ TEST(SceneCopy, CopyPreservesEntitiesAndComponents) {
     const auto light_view = copy.registry().view<const mini::scene::LightComponent>();
     ASSERT_FALSE(light_view.empty());
     const auto& copied_light = light_view.get<const mini::scene::LightComponent>(light_view.front());
-    expect_near(glm::vec3{ copied_light.direction_ }, glm::vec3{ -1.0f });
+    EXPECT_EQ(copied_light.type_, mini::scene::LightType::Directional);
+    expect_near(copy.registry().get<mini::scene::TransformComponent>(light_view.front()).rotation_, { 0.0f, glm::radians(90.0f), 0.0f });
     EXPECT_FLOAT_EQ(copied_light.intensity_, 2.0f);
     EXPECT_FALSE(copied_light.shadow_enabled_);
     EXPECT_EQ(copied_light.shadow_map_size_, 1024u);
@@ -302,7 +303,7 @@ protected:
 
         auto light_entity = scene_.create_entity("Light");
         auto& light = light_entity.add_component<mini::scene::LightComponent>();
-        light.direction_ = glm::vec3{ -1.0f };
+        light_entity.get_component<mini::scene::TransformComponent>().rotation_ = { 0.0f, glm::radians(90.0f), 0.0f };
         light.color_ = glm::vec3{ 1.0f };
         light.intensity_ = 3.0f;
         light.shadow_enabled_ = true;
@@ -363,7 +364,7 @@ TEST_F(SceneExtractorTest, ExtractsDirectionalLightAndShadow) {
     const auto data = extractor_.extract(scene_);
 
     ASSERT_TRUE(data.directional_light_.has_value());
-    expect_near(glm::vec3{ data.directional_light_->direction_ }, glm::vec3{ -1.0f });
+    expect_near(glm::vec3{ data.directional_light_->direction_ }, glm::vec3{ -1.0f, 0.0f, 0.0f });
     expect_near(glm::vec3{ data.directional_light_->color_ }, glm::vec3{ 1.0f });
     EXPECT_FLOAT_EQ(data.directional_light_->intensity_, 3.0f);
     EXPECT_TRUE(data.directional_light_->shadow_.enabled_);
@@ -414,6 +415,21 @@ TEST_F(SceneExtractorTest, FallsBackToFirstCameraWhenNoneIsPrimary) {
 TEST_F(SceneExtractorTest, ThrowsWhenSceneHasNoCamera) {
     mini::scene::Scene empty;
     EXPECT_THROW(extractor_.extract(empty), std::runtime_error);
+}
+
+TEST(SceneLight, DirectionUsesRotationWithoutTranslationOrScale) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity("Light");
+    entity.add_component<mini::scene::LightComponent>();
+    auto& transform = entity.get_component<mini::scene::TransformComponent>();
+    transform.rotation_ = { 0.0f, glm::radians(90.0f), 0.0f };
+    transform.translation_ = { 100.0f, -20.0f, 30.0f };
+    transform.scale_ = { -2.0f, 4.0f, 0.25f };
+    mini::scene::SceneExtractor::Options options;
+    options.camera_override_ = mini::render::CameraData{};
+    const auto data = mini::scene::SceneExtractor{}.extract(scene, options);
+    ASSERT_TRUE(data.directional_light_);
+    expect_near(data.directional_light_->direction_, { -1.0f, 0.0f, 0.0f });
 }
 
 } // namespace
