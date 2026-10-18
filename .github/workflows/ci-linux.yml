@@ -1,4 +1,4 @@
-name: CI
+name: Linux CI
 
 on:
   push:
@@ -49,19 +49,3 @@ jobs:
 
       - name: Run tests
         run: ctest --test-dir build --output-on-failure
-
-  windows:
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure
-        run: cmake -B build -A x64
-
-      - name: Build
-        run: cmake --build build --config Debug --parallel
-
-      - name: Run tests
-        run: ctest --test-dir build -C Debug --output-on-failure

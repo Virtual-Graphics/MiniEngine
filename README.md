@@ -1,5 +1,8 @@
 # MiniEngine
 
+[![Windows CI](https://github.com/Virtual-Graphics/MiniEngine/actions/workflows/ci-windows.yml/badge.svg?branch=main)](https://github.com/Virtual-Graphics/MiniEngine/actions/workflows/ci-windows.yml?query=branch%3Amain)
+[![Linux CI](https://github.com/Virtual-Graphics/MiniEngine/actions/workflows/ci-linux.yml/badge.svg?branch=main)](https://github.com/Virtual-Graphics/MiniEngine/actions/workflows/ci-linux.yml?query=branch%3Amain)
+
 MiniEngine 如名字一样它是一个非常 Mini 的游戏引擎，但相比作者的第一代游戏引擎 [Fermion](https://github.com/Yang-Junjie/Fermion.git) 体量会大很多而且功能会更完善系统更 Robust 。除此之外作者还有一个名为 [FinalEngine](https://github.com/Yang-Junjie/FinalEngine.git) 的与 MiniEngine 的架构大致相同的游戏引擎，不过 FinalEngine 与 MiniEngine 不同的是其中的 Graphics Api 使用的是 Vulkan 并且有 AI 参与（大部分是 vibe coding），而 MiniEngine 将采用非 vibe coding 的形式，并且使用 OpenGL 4.6 以及其中的大部分系统都会比 FinalEngine 轻量化很多。
 
 ## 为什么开发一个新引擎
