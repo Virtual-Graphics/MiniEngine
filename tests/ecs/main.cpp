@@ -98,11 +98,59 @@ TEST(Scene, SceneLevelComponentAccess) {
 
     EXPECT_TRUE(scene.has_component<mini::scene::IDComponent>(entity));
 
-    scene.remove_component<mini::scene::TagComponent>(entity);
-    EXPECT_FALSE(scene.has_component<mini::scene::TagComponent>(entity));
-
-    scene.add_component<mini::scene::TagComponent>(entity, mini::scene::TagComponent{ "Boss" });
+    scene.get_component<mini::scene::TagComponent>(entity).name_ = "Boss";
     EXPECT_EQ(scene.get_component<mini::scene::TagComponent>(entity).name_, std::string{ "Boss" });
+}
+
+TEST(Scene, RejectsForeignEntityEvenWhenItsHandleMatches) {
+    mini::scene::Scene scene;
+    mini::scene::Scene other;
+    auto local = scene.create_entity("Local");
+    auto foreign = other.create_entity("Foreign");
+    EXPECT_THROW(scene.destroy_entity(foreign), std::invalid_argument);
+    EXPECT_TRUE(local.valid());
+    EXPECT_TRUE(foreign.valid());
+}
+
+TEST(Scene, RequiredComponentsCannotBeRemovedThroughEitherApi) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity();
+    EXPECT_THROW(entity.remove_component<mini::scene::IDComponent>(), std::logic_error);
+    EXPECT_THROW(scene.remove_component<mini::scene::TagComponent>(entity), std::logic_error);
+    EXPECT_THROW(entity.remove_component<mini::scene::TransformComponent>(), std::logic_error);
+    EXPECT_THROW(entity.remove_component<const mini::scene::TagComponent>(), std::logic_error);
+    EXPECT_TRUE(entity.has_component<mini::scene::IDComponent>());
+    EXPECT_TRUE(entity.has_component<mini::scene::TagComponent>());
+    EXPECT_TRUE(entity.has_component<mini::scene::TransformComponent>());
+}
+
+TEST(Scene, WrapperTraversalFiltersComponentsAndReturnsOwnedEntities) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity("Renderable");
+    entity.add_component<mini::scene::MeshRendererComponent>();
+    scene.create_entity("Empty");
+    int visited = 0;
+    scene.each<mini::scene::TagComponent, mini::scene::MeshRendererComponent>([&](mini::scene::Entity current, auto& tag, auto& mesh) {
+        EXPECT_EQ(current, entity);
+        EXPECT_TRUE(scene.contains(current));
+        tag.name_ = "Edited";
+        mesh.visible_ = false;
+        ++visited;
+    });
+    EXPECT_EQ(visited, 1);
+    EXPECT_EQ(entity.get_component<mini::scene::TagComponent>().name_, "Edited");
+    EXPECT_FALSE(entity.get_component<mini::scene::MeshRendererComponent>().visible_);
+}
+
+TEST(Scene, DuplicateOrInvalidComponentAccessFailsBeforeRegistryMutation) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity();
+    entity.add_component<mini::scene::CameraComponent>();
+    EXPECT_THROW(entity.add_component<mini::scene::CameraComponent>(), std::logic_error);
+    EXPECT_THROW(entity.get_component<mini::scene::LightComponent>(), std::out_of_range);
+    scene.destroy_entity(entity);
+    EXPECT_FALSE(scene.contains(entity));
+    EXPECT_THROW(entity.add_component<mini::scene::LightComponent>(), std::invalid_argument);
 }
 
 TEST(Scene, DestroyEntityInvalidatesOnlyThatEntity) {
@@ -168,7 +216,7 @@ TEST(SceneCopy, CopyPreservesEntitiesAndComponents) {
 
     auto light_entity = scene.create_entity("Light");
     auto& light = light_entity.add_component<mini::scene::LightComponent>();
-    light.direction_ = glm::vec3{ -1.0f };
+    light_entity.get_component<mini::scene::TransformComponent>().rotation_ = { 0.0f, glm::radians(90.0f), 0.0f };
     light.color_ = glm::vec3{ 1.0f };
     light.intensity_ = 2.0f;
     light.shadow_enabled_ = false;
@@ -197,7 +245,8 @@ TEST(SceneCopy, CopyPreservesEntitiesAndComponents) {
     const auto light_view = copy.registry().view<const mini::scene::LightComponent>();
     ASSERT_FALSE(light_view.empty());
     const auto& copied_light = light_view.get<const mini::scene::LightComponent>(light_view.front());
-    expect_near(glm::vec3{ copied_light.direction_ }, glm::vec3{ -1.0f });
+    EXPECT_EQ(copied_light.type_, mini::scene::LightType::Directional);
+    expect_near(copy.registry().get<mini::scene::TransformComponent>(light_view.front()).rotation_, { 0.0f, glm::radians(90.0f), 0.0f });
     EXPECT_FLOAT_EQ(copied_light.intensity_, 2.0f);
     EXPECT_FALSE(copied_light.shadow_enabled_);
     EXPECT_EQ(copied_light.shadow_map_size_, 1024u);
@@ -255,7 +304,7 @@ protected:
 
         auto light_entity = scene_.create_entity("Light");
         auto& light = light_entity.add_component<mini::scene::LightComponent>();
-        light.direction_ = glm::vec3{ -1.0f };
+        light_entity.get_component<mini::scene::TransformComponent>().rotation_ = { 0.0f, glm::radians(90.0f), 0.0f };
         light.color_ = glm::vec3{ 1.0f };
         light.intensity_ = 3.0f;
         light.shadow_enabled_ = true;
@@ -316,7 +365,7 @@ TEST_F(SceneExtractorTest, ExtractsDirectionalLightAndShadow) {
     const auto data = extractor_.extract(scene_);
 
     ASSERT_TRUE(data.directional_light_.has_value());
-    expect_near(glm::vec3{ data.directional_light_->direction_ }, glm::vec3{ -1.0f });
+    expect_near(glm::vec3{ data.directional_light_->direction_ }, glm::vec3{ -1.0f, 0.0f, 0.0f });
     expect_near(glm::vec3{ data.directional_light_->color_ }, glm::vec3{ 1.0f });
     EXPECT_FLOAT_EQ(data.directional_light_->intensity_, 3.0f);
     EXPECT_TRUE(data.directional_light_->shadow_.enabled_);
@@ -367,6 +416,38 @@ TEST_F(SceneExtractorTest, FallsBackToFirstCameraWhenNoneIsPrimary) {
 TEST_F(SceneExtractorTest, ThrowsWhenSceneHasNoCamera) {
     mini::scene::Scene empty;
     EXPECT_THROW(extractor_.extract(empty), std::runtime_error);
+}
+
+TEST(SceneLight, DirectionUsesRotationWithoutTranslationOrScale) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity("Light");
+    entity.add_component<mini::scene::LightComponent>();
+    auto& transform = entity.get_component<mini::scene::TransformComponent>();
+    transform.rotation_ = { 0.0f, glm::radians(90.0f), 0.0f };
+    transform.translation_ = { 100.0f, -20.0f, 30.0f };
+    transform.scale_ = { -2.0f, 4.0f, 0.25f };
+    mini::scene::SceneExtractor::Options options;
+    options.camera_override_ = mini::render::CameraData{};
+    const auto data = mini::scene::SceneExtractor{}.extract(scene, options);
+    ASSERT_TRUE(data.directional_light_);
+    expect_near(data.directional_light_->direction_, { -1.0f, 0.0f, 0.0f });
+}
+
+TEST(SceneExtractor, SkipsRenderersUntilBothResourcesAreAssigned) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity();
+    auto& mesh = entity.add_component<mini::scene::MeshRendererComponent>();
+    mini::scene::SceneExtractor::Options options;
+    options.camera_override_ = mini::render::CameraData{};
+    mini::scene::SceneExtractor extractor;
+    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
+    mesh.mesh_ = mini::render::MeshHandle{ 1 };
+    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
+    mesh.mesh_ = {};
+    mesh.material_ = mini::render::MaterialHandle{ 2 };
+    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
+    mesh.mesh_ = mini::render::MeshHandle{ 1 };
+    EXPECT_EQ(extractor.extract(scene, options).items_.size(), 1u);
 }
 
 } // namespace

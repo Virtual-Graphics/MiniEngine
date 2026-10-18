@@ -44,6 +44,15 @@ Entity Scene::create_entity(const std::string& name) {
     return Entity{ entity, *this };
 }
 
-void Scene::destroy_entity(Entity entity) { registry_.destroy(entity.handle()); }
+bool Scene::contains(Entity entity) const { return entity.scene_ == this && registry_.valid(entity.handle_); }
+
+void Scene::require_entity(Entity entity) const {
+    if (!contains(entity)) throw std::invalid_argument("Entity is invalid or belongs to another scene");
+}
+
+void Scene::destroy_entity(Entity entity) {
+    require_entity(entity);
+    registry_.destroy(entity.handle());
+}
 
 } // namespace mini::scene

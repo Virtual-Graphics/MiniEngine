@@ -77,7 +77,8 @@ public:
 
         light_entity_ = scene_->create_entity("Directional Light");
         auto& light = light_entity_.add_component<mini::scene::LightComponent>();
-        light.direction_ = glm::vec3{ -1.0f, -1.0f, -1.0f };
+        light_entity_.get_component<mini::scene::TransformComponent>().rotation_ =
+                glm::eulerAngles(glm::quatLookAt(glm::normalize(glm::vec3{ -1.0f }), glm::vec3{ 0.0f, 1.0f, 0.0f }));
         light.color_ = glm::vec3{ 1.0f };
         light.intensity_ = 1.0f;
         light.shadow_map_size_ = 2048;
@@ -143,10 +144,11 @@ private:
 
             auto& light = light_entity_.get_component<mini::scene::LightComponent>();
             if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
-                glm::vec3 direction = light.direction_;
-                if (ImGui::DragFloat3("Direction", &direction.x, 0.01f, -1.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp) &&
-                        glm::dot(direction, direction) > 1e-6f) {
-                    light.direction_ = direction;
+                auto& transform = light_entity_.get_component<mini::scene::TransformComponent>();
+                auto rotation = glm::degrees(transform.rotation_);
+                if (ImGui::DragFloat3("Rotation (deg)", &rotation.x, 0.5f) && std::isfinite(rotation.x) && std::isfinite(rotation.y) &&
+                        std::isfinite(rotation.z)) {
+                    transform.rotation_ = glm::radians(rotation);
                 }
                 ImGui::ColorEdit3("Light color", &light.color_.x);
                 ImGui::SliderFloat("Intensity", &light.intensity_, 0.0f, 5.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);

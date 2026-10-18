@@ -56,16 +56,22 @@ render::RenderData SceneExtractor::extract(const Scene& scene, const Options& op
         data.environment_ = make_environment(environment_view.get<const EnvironmentComponent>(environment_view.front()));
     }
 
-    const auto light_view = scene.registry().view<const LightComponent>();
-    if (!light_view.empty()) {
-        data.directional_light_ = make_directional_light(light_view.get<const LightComponent>(light_view.front()));
+    const auto light_view = scene.registry().view<const TransformComponent, const LightComponent>();
+    for (const auto entity: light_view) {
+        const auto& light = light_view.get<const LightComponent>(entity);
+        switch (light.type_) {
+            case LightType::Directional:
+                data.directional_light_ = make_directional_light(light, light_view.get<const TransformComponent>(entity));
+                break;
+        }
+        if (data.directional_light_) break;
     }
 
     const auto render_view = scene.registry().view<const TransformComponent, const MeshRendererComponent>();
     for (const auto entity: render_view) {
         const auto& transform = render_view.get<const TransformComponent>(entity);
         const auto& renderer = render_view.get<const MeshRendererComponent>(entity);
-        if (!renderer.visible_) {
+        if (!renderer.visible_ || renderer.mesh_.value_ == 0 || renderer.material_.value_ == 0) {
             continue;
         }
 

@@ -28,6 +28,7 @@ public:
     void run();
 
     base::Window& get_window() { return *window_; }
+    const mini::gfx::Context& get_graphics_context() const { return *context_; }
     LayerStack& get_layer_stack() { return layer_stack_; }
 
     void push_layer(std::unique_ptr<Layer> layer);

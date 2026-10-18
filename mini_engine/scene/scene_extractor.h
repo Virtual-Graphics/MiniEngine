@@ -3,6 +3,7 @@
 #include "render/render_data.h"
 #include "scene/components.h"
 
+#include <glm/gtc/quaternion.hpp>
 #include <optional>
 
 namespace mini::scene {
@@ -22,9 +23,10 @@ public:
     render::RenderData extract(const Scene& scene, const Options& options) const;
 
 private:
-    static render::DirectionalLight make_directional_light(const LightComponent& light) {
+    static render::DirectionalLight make_directional_light(const LightComponent& light, const TransformComponent& transform) {
         return render::DirectionalLight{
-            .direction_ = light.direction_,
+            // Local -Z is the light's propagation direction. Position and scale do not affect it.
+            .direction_ = glm::normalize(glm::quat(transform.rotation_) * glm::vec3{ 0.0f, 0.0f, -1.0f }),
             .color_ = light.color_,
             .intensity_ = light.intensity_,
             .shadow_ =
