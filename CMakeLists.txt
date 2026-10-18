@@ -20,6 +20,8 @@ if (BUILD_CORE)
 endif()
 
 if (BUILD_TESTS)
+    enable_testing()
+    include(cmake/third_party_googletest.cmake)
     add_subdirectory(tests)
 endif()
 
