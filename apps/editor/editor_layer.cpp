@@ -85,15 +85,17 @@ void EditorLayer::update_camera(base::Timestep dt) {
     auto* window = application().get_window().handle();
     const bool focused = (SDL_GetWindowFlags(window) & SDL_WINDOW_INPUT_FOCUS) != 0;
     const bool popup = ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
-    const bool escape = ImGui::IsKeyDown(ImGuiKey_Escape);
-    const bool right_down = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    const bool escape = base::Input::is_key_down(base::Key::Escape);
+    const bool right_down = base::Input::is_mouse_button_down(base::MouseButton::Right);
     if (controlling_camera_ && (!right_down || escape || !focused || !viewport_.visible() || !viewport_.focused() || popup)) {
         release_camera();
     }
 
     bool started = false;
     if (!controlling_camera_ && viewport_.camera_requested() && right_down && focused && !escape && !popup) {
-        SDL_GetMouseState(&saved_mouse_x_, &saved_mouse_y_);
+        const auto [x, y] = base::Input::mouse_position();
+        saved_mouse_x_ = x;
+        saved_mouse_y_ = y;
         if (SDL_SetWindowRelativeMouseMode(window, true)) {
             controlling_camera_ = true;
             started = true;
@@ -105,14 +107,7 @@ void EditorLayer::update_camera(base::Timestep dt) {
     }
     if (!controlling_camera_) return;
 
-    EditorCamera::Input input;
-    const auto [delta_x, delta_y] = base::Input::mouse_delta();
-    input.look_delta = { delta_x, delta_y };
-    if (started) input.look_delta = glm::vec2{ 0.0f };
-    const auto down = [](ImGuiKey key) { return ImGui::IsKeyDown(key) ? 1.0f : 0.0f; };
-    input.movement = { down(ImGuiKey_D) - down(ImGuiKey_A), down(ImGuiKey_E) - down(ImGuiKey_Q), down(ImGuiKey_W) - down(ImGuiKey_S) };
-    input.wheel = ImGui::GetIO().MouseWheel;
-    camera_.update(input, dt.get_seconds());
+    camera_.update_from_input(dt.get_seconds(), started);
     ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 }
 

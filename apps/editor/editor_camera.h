@@ -4,7 +4,7 @@
 
 namespace editor {
 
-// Camera math is independent of window input and the scene's camera entities.
+// Independent of scene cameras and viewport/window capture policy.
 class EditorCamera {
 public:
     struct Input {
@@ -14,6 +14,8 @@ public:
     };
 
     void update(const Input& input, float seconds);
+    // Called by the layer only while viewport camera control is active.
+    void update_from_input(float seconds, bool discard_mouse_delta = false);
     mini::render::CameraData data(float aspect) const;
     float speed() const { return speed_; }
 

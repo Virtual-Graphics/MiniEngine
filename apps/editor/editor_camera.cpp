@@ -1,4 +1,5 @@
 #include "editor/editor_camera.h"
+#include "base/input.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6,6 +7,19 @@
 #include <stdexcept>
 
 namespace editor {
+
+void EditorCamera::update_from_input(float seconds, bool discard_mouse_delta) {
+    Input input;
+    const auto down = [](base::Key key) { return base::Input::is_key_down(key) ? 1.0f : 0.0f; };
+    input.movement = { down(base::Key::D) - down(base::Key::A), down(base::Key::E) - down(base::Key::Q),
+        down(base::Key::W) - down(base::Key::S) };
+    if (!discard_mouse_delta) {
+        const auto [x, y] = base::Input::mouse_delta();
+        input.look_delta = { x, y };
+    }
+    input.wheel = base::Input::mouse_wheel_y();
+    update(input, seconds);
+}
 
 glm::vec3 EditorCamera::forward() const {
     const float yaw = glm::radians(yaw_);
