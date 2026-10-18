@@ -51,12 +51,18 @@ protected:
         return { window->DC.CursorStartPos.x + 50.0f, window->DC.CursorStartPos.y + ImGui::GetFontSize() * 0.5f };
     }
 
-    void choose_popup_action() {
+    void choose_popup_action(int index = 0) {
         frame();
         ASSERT_EQ(ImGui::GetCurrentContext()->OpenPopupStack.Size, 1);
         auto* popup = ImGui::GetCurrentContext()->OpenPopupStack[0].Window;
         ASSERT_NE(popup, nullptr);
-        click({ popup->DC.CursorStartPos.x + 30.0f, popup->DC.CursorStartPos.y + ImGui::GetFontSize() * 0.5f });
+        click({ popup->DC.CursorStartPos.x + 30.0f,
+            popup->DC.CursorStartPos.y + ImGui::GetFontSize() * 0.5f + index * ImGui::GetTextLineHeightWithSpacing() });
+    }
+
+    void open_add_component() {
+        auto* window = ImGui::FindWindowByName("Inspector");
+        click({ window->DC.CursorStartPos.x + 40.0f, window->DC.CursorPosPrevLine.y + ImGui::GetFrameHeight() * 0.5f });
     }
 
     editor::EditorContext context_;
@@ -150,6 +156,33 @@ TEST_F(EditorPanels, InspectorPreventsSingularScaleFromNumericInput) {
     EXPECT_NEAR(scale.x, 0.0001f, 1e-6f);
     EXPECT_FLOAT_EQ(scale.y, 1.0f);
     EXPECT_FLOAT_EQ(scale.z, 1.0f);
+}
+
+TEST_F(EditorPanels, InspectorAddsAndRemovesOptionalComponentThroughMenus) {
+    auto entity = context_.create_entity();
+    frame();
+    frame();
+    open_add_component();
+    choose_popup_action();
+    ASSERT_TRUE(entity.has_component<mini::scene::MeshRendererComponent>());
+    auto* window = ImGui::FindWindowByName("Inspector");
+    const auto start = window->DC.CursorStartPos;
+    const float y = start.y + ImGui::GetFrameHeightWithSpacing() * 5.0f + ImGui::GetTextLineHeightWithSpacing();
+    click({ start.x + 40.0f, y + ImGui::GetFrameHeight() * 0.5f }, ImGuiMouseButton_Right);
+    choose_popup_action();
+    EXPECT_FALSE(entity.has_component<mini::scene::MeshRendererComponent>());
+    EXPECT_TRUE(entity.has_component<mini::scene::TransformComponent>());
+}
+
+TEST_F(EditorPanels, InspectorDisablesSecondSceneLight) {
+    context_.scene().create_entity("Sun").add_component<mini::scene::LightComponent>();
+    auto entity = context_.create_entity();
+    frame();
+    frame();
+    open_add_component();
+    choose_popup_action(2);
+    EXPECT_FALSE(entity.has_component<mini::scene::LightComponent>());
+    EXPECT_EQ(ImGui::GetCurrentContext()->OpenPopupStack.Size, 1);
 }
 
 } // namespace

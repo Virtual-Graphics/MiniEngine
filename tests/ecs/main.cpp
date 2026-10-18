@@ -432,4 +432,21 @@ TEST(SceneLight, DirectionUsesRotationWithoutTranslationOrScale) {
     expect_near(data.directional_light_->direction_, { -1.0f, 0.0f, 0.0f });
 }
 
+TEST(SceneExtractor, SkipsRenderersUntilBothResourcesAreAssigned) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity();
+    auto& mesh = entity.add_component<mini::scene::MeshRendererComponent>();
+    mini::scene::SceneExtractor::Options options;
+    options.camera_override_ = mini::render::CameraData{};
+    mini::scene::SceneExtractor extractor;
+    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
+    mesh.mesh_ = mini::render::MeshHandle{ 1 };
+    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
+    mesh.mesh_ = {};
+    mesh.material_ = mini::render::MaterialHandle{ 2 };
+    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
+    mesh.mesh_ = mini::render::MeshHandle{ 1 };
+    EXPECT_EQ(extractor.extract(scene, options).items_.size(), 1u);
+}
+
 } // namespace

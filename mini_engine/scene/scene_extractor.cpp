@@ -71,7 +71,7 @@ render::RenderData SceneExtractor::extract(const Scene& scene, const Options& op
     for (const auto entity: render_view) {
         const auto& transform = render_view.get<const TransformComponent>(entity);
         const auto& renderer = render_view.get<const MeshRendererComponent>(entity);
-        if (!renderer.visible_) {
+        if (!renderer.visible_ || renderer.mesh_.value_ == 0 || renderer.material_.value_ == 0) {
             continue;
         }
 

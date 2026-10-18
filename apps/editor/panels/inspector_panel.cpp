@@ -12,6 +12,33 @@ namespace {
 
 bool section(const char* label) { return ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen); }
 
+template<typename Component, typename Draw>
+void draw_component(mini::scene::Entity entity, const char* label, Draw&& draw) {
+    if (!entity.has_component<Component>()) return;
+    ImGui::PushID(label);
+    const bool expanded = section(label);
+    bool remove = false;
+    if (ImGui::BeginPopupContextItem("ComponentMenu")) {
+        remove = ImGui::MenuItem("Remove Component");
+        ImGui::EndPopup();
+    }
+    if (expanded) draw(entity.get_component<Component>());
+    // No reference to this component is used after removal.
+    if (remove) entity.remove_component<Component>();
+    ImGui::PopID();
+}
+
+template<typename Component>
+void add_component_item(EditorContext& context, mini::scene::Entity entity, const char* label, bool singleton = false) {
+    const bool already_attached = entity.has_component<Component>();
+    bool occupied = false;
+    if (singleton) context.scene().each<Component>([&](auto, const auto&) { occupied = true; });
+    if (ImGui::MenuItem(label, nullptr, false, !already_attached && !occupied)) entity.add_component<Component>();
+    if ((already_attached || occupied) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+        ImGui::SetTooltip("%s", already_attached ? "Entity already has this component." : "Only one per scene is currently supported.");
+    }
+}
+
 bool finite(const glm::vec3& value) { return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z); }
 
 void bounded_drag(const char* label, float& value, float minimum, float maximum = 100000.0f, float speed = 0.01f,
@@ -38,7 +65,6 @@ void draw_transform(mini::scene::TransformComponent& transform) {
 }
 
 void draw_camera(mini::scene::CameraComponent& camera) {
-    if (!section("Camera")) return;
     ImGui::Checkbox("Primary", &camera.primary_);
     int projection = static_cast<int>(camera.projection_type_);
     if (ImGui::Combo("Projection", &projection, "Perspective\0Orthographic\0")) {
@@ -70,7 +96,6 @@ void draw_camera(mini::scene::CameraComponent& camera) {
 }
 
 void draw_light(mini::scene::LightComponent& light) {
-    if (!section("Light")) return;
     ImGui::Text("Type: Directional");
     ImGui::TextDisabled("Direction follows Transform rotation (local -Z).");
     ImGui::ColorEdit3("Color", &light.color_.x);
@@ -113,18 +138,27 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
             }
             if (entity.has_component<mini::scene::TransformComponent>())
                 draw_transform(entity.get_component<mini::scene::TransformComponent>());
-            if (entity.has_component<mini::scene::MeshRendererComponent>() && section("Mesh Renderer")) {
-                auto& mesh = entity.get_component<mini::scene::MeshRendererComponent>();
+            draw_component<mini::scene::MeshRendererComponent>(entity, "Mesh Renderer", [](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
                 ImGui::Text("Mesh: %llu", static_cast<unsigned long long>(mesh.mesh_.value_));
                 ImGui::Text("Material: %llu", static_cast<unsigned long long>(mesh.material_.value_));
-            }
-            if (entity.has_component<mini::scene::CameraComponent>()) draw_camera(entity.get_component<mini::scene::CameraComponent>());
-            if (entity.has_component<mini::scene::LightComponent>()) draw_light(entity.get_component<mini::scene::LightComponent>());
-            if (entity.has_component<mini::scene::EnvironmentComponent>() && section("Environment")) {
-                auto& environment = entity.get_component<mini::scene::EnvironmentComponent>();
+                if (mesh.mesh_.value_ == 0 || mesh.material_.value_ == 0)
+                    ImGui::TextDisabled("Not rendered: mesh and material must both be assigned.");
+            });
+            draw_component<mini::scene::CameraComponent>(entity, "Camera", draw_camera);
+            draw_component<mini::scene::LightComponent>(entity, "Light", draw_light);
+            draw_component<mini::scene::EnvironmentComponent>(entity, "Environment", [](auto& environment) {
                 ImGui::ColorEdit3("Ambient", &environment.ambient_color_.x);
                 ImGui::ColorEdit3("Background", &environment.clear_color_.x);
+            });
+            ImGui::TextDisabled("Right-click optional component headers to remove.");
+            if (ImGui::Button("Add Component")) ImGui::OpenPopup("AddComponentMenu");
+            if (ImGui::BeginPopup("AddComponentMenu")) {
+                add_component_item<mini::scene::MeshRendererComponent>(context, entity, "Mesh Renderer");
+                add_component_item<mini::scene::CameraComponent>(context, entity, "Camera");
+                add_component_item<mini::scene::LightComponent>(context, entity, "Light", true);
+                add_component_item<mini::scene::EnvironmentComponent>(context, entity, "Environment", true);
+                ImGui::EndPopup();
             }
             ImGui::PopID();
         } else {
