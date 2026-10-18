@@ -1,0 +1,119 @@
+#include "editor/editor_camera.h"
+#include "editor/editor_context.h"
+
+#include <cmath>
+#include <gtest/gtest.h>
+#include <memory>
+#include <stdexcept>
+
+namespace {
+
+TEST(EditorContext, SceneReplacementClearsSelectionBeforeOldSceneIsDestroyed) {
+    editor::EditorContext context;
+    context.create_entity();
+    auto replacement = std::make_unique<mini::scene::Scene>();
+    replacement->create_entity("Replacement");
+    context.set_scene(std::move(replacement));
+    EXPECT_FALSE(context.selected_entity());
+    EXPECT_EQ(context.scene().registry().view<mini::scene::TagComponent>().size(), 1u);
+}
+
+TEST(EditorContext, RejectsSelectionFromAnotherScene) {
+    editor::EditorContext context;
+    mini::scene::Scene other;
+    EXPECT_THROW(context.select(other.create_entity()), std::invalid_argument);
+    EXPECT_FALSE(context.selected_entity());
+}
+
+TEST(EditorContext, DeletingSelectedEntityClearsSelection) {
+    editor::EditorContext context;
+    auto selected = context.create_entity();
+    context.destroy_entity(selected);
+    EXPECT_FALSE(selected);
+    EXPECT_FALSE(context.selected_entity());
+}
+
+TEST(EditorContext, DeletingOtherEntityPreservesSelection) {
+    editor::EditorContext context;
+    auto other = context.create_entity();
+    auto selected = context.create_entity();
+    context.destroy_entity(other);
+    EXPECT_EQ(context.selected_entity(), selected);
+}
+
+TEST(EditorContext, ExternalDeletionDoesNotSelectRecycledHandle) {
+    editor::EditorContext context;
+    auto selected = context.create_entity();
+    context.scene().destroy_entity(selected);
+    context.scene().create_entity("New entity");
+    EXPECT_FALSE(context.selected_entity());
+}
+
+TEST(EditorContext, NullSceneReplacementPreservesExistingSceneAndSelection) {
+    editor::EditorContext context;
+    auto selected = context.create_entity();
+    EXPECT_THROW(context.set_scene(nullptr), std::invalid_argument);
+    EXPECT_EQ(context.selected_entity(), selected);
+}
+
+TEST(EditorCamera, MovementIsIndependentOfFrameRate) {
+    editor::EditorCamera whole;
+    editor::EditorCamera split;
+    const editor::EditorCamera::Input input{ .movement = { 0.0f, 0.0f, 1.0f } };
+    whole.update(input, 1.0f);
+    for (int i = 0; i < 100; ++i) split.update(input, 0.01f);
+    EXPECT_LT(glm::length(whole.data(1.0f).position_ - split.data(1.0f).position_), 1e-3f);
+}
+
+TEST(EditorCamera, DiagonalMovementHasTheSameSpeedAsForwardMovement) {
+    editor::EditorCamera forward;
+    editor::EditorCamera diagonal;
+    const auto origin = forward.data(1.0f).position_;
+    forward.update({ .movement = { 0.0f, 0.0f, 1.0f } }, 1.0f);
+    diagonal.update({ .movement = { 1.0f, 1.0f, 1.0f } }, 1.0f);
+    EXPECT_NEAR(glm::length(forward.data(1.0f).position_ - origin), forward.speed(), 1e-4f);
+    EXPECT_NEAR(glm::length(diagonal.data(1.0f).position_ - origin), forward.speed(), 1e-4f);
+}
+
+TEST(EditorCamera, VerticalMovementUsesWorldUp) {
+    editor::EditorCamera camera;
+    const auto origin = camera.data(1.0f).position_;
+    camera.update({ .movement = { 0.0f, 1.0f, 0.0f } }, 1.0f);
+    const auto delta = camera.data(1.0f).position_ - origin;
+    EXPECT_NEAR(delta.x, 0.0f, 1e-4f);
+    EXPECT_NEAR(delta.z, 0.0f, 1e-4f);
+    EXPECT_NEAR(delta.y, camera.speed(), 1e-4f);
+}
+
+TEST(EditorCamera, WheelChangesSpeedWithinFinitePositiveBounds) {
+    editor::EditorCamera camera;
+    const float initial = camera.speed();
+    camera.update({ .wheel = 1.0f }, 0.0f);
+    EXPECT_GT(camera.speed(), initial);
+    camera.update({ .wheel = -1.0f }, 0.0f);
+    EXPECT_NEAR(camera.speed(), initial, 1e-4f);
+    for (int i = 0; i < 100; ++i) camera.update({ .wheel = -100.0f }, 0.0f);
+    EXPECT_TRUE(std::isfinite(camera.speed()));
+    EXPECT_GT(camera.speed(), 0.0f);
+    for (int i = 0; i < 100; ++i) camera.update({ .wheel = 100.0f }, 0.0f);
+    EXPECT_TRUE(std::isfinite(camera.speed()));
+    EXPECT_LT(camera.speed(), 10000.0f);
+}
+
+TEST(EditorCamera, ExtremePitchRemainsUprightAndFinite) {
+    editor::EditorCamera camera;
+    camera.update({ .look_delta = { 0.0f, -100000.0f } }, 0.0f);
+    const auto view = camera.data(1.0f).view_;
+    for (int col = 0; col < 4; ++col)
+        for (int row = 0; row < 4; ++row) EXPECT_TRUE(std::isfinite(view[col][row]));
+    EXPECT_GT(view[1][1], 0.0f);
+}
+
+TEST(EditorCamera, ProjectionUsesViewportAspect) {
+    editor::EditorCamera camera;
+    const auto projection = camera.data(2.0f).projection_;
+    EXPECT_NEAR(projection[1][1] / projection[0][0], 2.0f, 1e-4f);
+    EXPECT_THROW(camera.data(0.0f), std::invalid_argument);
+}
+
+} // namespace
