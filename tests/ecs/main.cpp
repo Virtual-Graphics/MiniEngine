@@ -118,6 +118,7 @@ TEST(Scene, RequiredComponentsCannotBeRemovedThroughEitherApi) {
     EXPECT_THROW(entity.remove_component<mini::scene::IDComponent>(), std::logic_error);
     EXPECT_THROW(scene.remove_component<mini::scene::TagComponent>(entity), std::logic_error);
     EXPECT_THROW(entity.remove_component<mini::scene::TransformComponent>(), std::logic_error);
+    EXPECT_THROW(entity.remove_component<const mini::scene::TagComponent>(), std::logic_error);
     EXPECT_TRUE(entity.has_component<mini::scene::IDComponent>());
     EXPECT_TRUE(entity.has_component<mini::scene::TagComponent>());
     EXPECT_TRUE(entity.has_component<mini::scene::TransformComponent>());

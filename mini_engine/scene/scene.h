@@ -61,10 +61,13 @@ public:
     template<typename T>
     void remove_component(Entity entity) {
         require_entity(entity);
-        if constexpr (std::is_same_v<T, IDComponent> || std::is_same_v<T, TagComponent> || std::is_same_v<T, TransformComponent>) {
+        using Component = std::remove_cv_t<T>;
+        if constexpr (std::is_same_v<Component, IDComponent> || std::is_same_v<Component, TagComponent> ||
+                      std::is_same_v<Component, TransformComponent>) {
             throw std::logic_error("Required entity components cannot be removed");
+        } else {
+            registry_.remove<Component>(entity.handle());
         }
-        registry_.remove<T>(entity.handle());
     }
 
     entt::registry& registry() { return registry_; }
