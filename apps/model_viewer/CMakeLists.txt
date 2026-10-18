@@ -4,4 +4,4 @@ add_executable(model_viewer main.cpp)
 
 target_compile_definitions(model_viewer PRIVATE ASSETS_DIR="${ASSETS_DIR}")
 
-target_link_libraries(model_viewer PRIVATE mini_engine)
+target_link_libraries(model_viewer PRIVATE mini_app_imgui)

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 struct SDL_Window;
+union SDL_Event;
 
 namespace base {
 
@@ -15,6 +17,8 @@ struct WindowProps {
 
 class Window {
 public:
+    using EventCallback = std::function<void(const SDL_Event&)>;
+
     explicit Window(const WindowProps& props);
     ~Window();
 
@@ -23,6 +27,8 @@ public:
 
     bool should_close() const { return should_close_; }
     void poll_events();
+    // Observes every polled event without consuming the window's own handling.
+    void set_event_callback(EventCallback callback);
 
     uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
@@ -38,6 +44,7 @@ private:
     uint32_t height_ = 0;
     bool should_close_ = false;
     bool resized_ = false;
+    EventCallback event_callback_;
 };
 
 } // namespace base

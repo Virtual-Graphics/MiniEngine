@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include <stdexcept>
+#include <utility>
 
 #include "base/input.h"
 
@@ -40,6 +41,10 @@ void Window::poll_events() {
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (event_callback_) {
+            event_callback_(event);
+        }
+
         switch (event.type) {
         case SDL_EVENT_QUIT:
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -62,5 +67,7 @@ void Window::poll_events() {
         }
     }
 }
+
+void Window::set_event_callback(EventCallback callback) { event_callback_ = std::move(callback); }
 
 } // namespace base
