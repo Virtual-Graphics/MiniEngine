@@ -20,8 +20,6 @@ public:
 
     virtual void on_update(base::Timestep dt) {}
 
-    virtual void on_imgui_render() {}
-
     virtual void on_render() {}
 
     const std::string& get_name() const { return name_; }
