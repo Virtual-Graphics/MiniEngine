@@ -106,11 +106,8 @@ void EditorLayer::update_camera(base::Timestep dt) {
     if (!controlling_camera_) return;
 
     EditorCamera::Input input;
-    SDL_GetRelativeMouseState(&input.look_delta.x, &input.look_delta.y);
-    // Window::poll_events() sampled relative input before pumping this frame's events.
-    // Include that sample as well as motion accumulated during the event pump.
-    const auto [previous_x, previous_y] = base::Input::mouse_delta();
-    input.look_delta += glm::vec2{ previous_x, previous_y };
+    const auto [delta_x, delta_y] = base::Input::mouse_delta();
+    input.look_delta = { delta_x, delta_y };
     if (started) input.look_delta = glm::vec2{ 0.0f };
     const auto down = [](ImGuiKey key) { return ImGui::IsKeyDown(key) ? 1.0f : 0.0f; };
     input.movement = { down(ImGuiKey_D) - down(ImGuiKey_A), down(ImGuiKey_E) - down(ImGuiKey_Q), down(ImGuiKey_W) - down(ImGuiKey_S) };
