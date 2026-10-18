@@ -20,7 +20,7 @@ public:
 
 private:
     std::unique_ptr<mini::scene::Scene> scene_ = std::make_unique<mini::scene::Scene>();
-    entt::entity selected_ = entt::null;
+    mini::scene::Entity selected_;
 };
 
 } // namespace editor

@@ -13,10 +13,9 @@ void HierarchyPanel::draw(EditorContext& context, bool& open) const {
         bool create = false;
         bool over_entity = false;
         const auto selected = context.selected_entity();
-        for (const auto handle: context.scene().registry().view<mini::scene::TagComponent>()) {
-            const mini::scene::Entity entity{ handle, context.scene() };
-            ImGui::PushID(static_cast<int>(entt::to_integral(handle)));
-            const auto& tag = entity.get_component<mini::scene::TagComponent>();
+        context.scene().each<mini::scene::TagComponent>([&](mini::scene::Entity entity, const auto& tag) {
+            const auto id = entity.get_component<mini::scene::IDComponent>().id_.to_string();
+            ImGui::PushID(id.c_str());
             // A fixed hidden ID keeps duplicate names and names containing ## independent.
             if (ImGui::Selectable("##entity", entity == selected)) context.select(entity);
             const auto position = ImGui::GetItemRectMin();
@@ -28,7 +27,7 @@ void HierarchyPanel::draw(EditorContext& context, bool& open) const {
                 ImGui::EndPopup();
             }
             ImGui::PopID();
-        }
+        });
         if (ImGui::BeginPopupContextWindow("CreateEntityMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
             create = ImGui::MenuItem("Create Entity");
             ImGui::EndPopup();

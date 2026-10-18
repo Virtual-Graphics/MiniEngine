@@ -98,11 +98,58 @@ TEST(Scene, SceneLevelComponentAccess) {
 
     EXPECT_TRUE(scene.has_component<mini::scene::IDComponent>(entity));
 
-    scene.remove_component<mini::scene::TagComponent>(entity);
-    EXPECT_FALSE(scene.has_component<mini::scene::TagComponent>(entity));
-
-    scene.add_component<mini::scene::TagComponent>(entity, mini::scene::TagComponent{ "Boss" });
+    scene.get_component<mini::scene::TagComponent>(entity).name_ = "Boss";
     EXPECT_EQ(scene.get_component<mini::scene::TagComponent>(entity).name_, std::string{ "Boss" });
+}
+
+TEST(Scene, RejectsForeignEntityEvenWhenItsHandleMatches) {
+    mini::scene::Scene scene;
+    mini::scene::Scene other;
+    auto local = scene.create_entity("Local");
+    auto foreign = other.create_entity("Foreign");
+    EXPECT_THROW(scene.destroy_entity(foreign), std::invalid_argument);
+    EXPECT_TRUE(local.valid());
+    EXPECT_TRUE(foreign.valid());
+}
+
+TEST(Scene, RequiredComponentsCannotBeRemovedThroughEitherApi) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity();
+    EXPECT_THROW(entity.remove_component<mini::scene::IDComponent>(), std::logic_error);
+    EXPECT_THROW(scene.remove_component<mini::scene::TagComponent>(entity), std::logic_error);
+    EXPECT_THROW(entity.remove_component<mini::scene::TransformComponent>(), std::logic_error);
+    EXPECT_TRUE(entity.has_component<mini::scene::IDComponent>());
+    EXPECT_TRUE(entity.has_component<mini::scene::TagComponent>());
+    EXPECT_TRUE(entity.has_component<mini::scene::TransformComponent>());
+}
+
+TEST(Scene, WrapperTraversalFiltersComponentsAndReturnsOwnedEntities) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity("Renderable");
+    entity.add_component<mini::scene::MeshRendererComponent>();
+    scene.create_entity("Empty");
+    int visited = 0;
+    scene.each<mini::scene::TagComponent, mini::scene::MeshRendererComponent>([&](mini::scene::Entity current, auto& tag, auto& mesh) {
+        EXPECT_EQ(current, entity);
+        EXPECT_TRUE(scene.contains(current));
+        tag.name_ = "Edited";
+        mesh.visible_ = false;
+        ++visited;
+    });
+    EXPECT_EQ(visited, 1);
+    EXPECT_EQ(entity.get_component<mini::scene::TagComponent>().name_, "Edited");
+    EXPECT_FALSE(entity.get_component<mini::scene::MeshRendererComponent>().visible_);
+}
+
+TEST(Scene, DuplicateOrInvalidComponentAccessFailsBeforeRegistryMutation) {
+    mini::scene::Scene scene;
+    auto entity = scene.create_entity();
+    entity.add_component<mini::scene::CameraComponent>();
+    EXPECT_THROW(entity.add_component<mini::scene::CameraComponent>(), std::logic_error);
+    EXPECT_THROW(entity.get_component<mini::scene::LightComponent>(), std::out_of_range);
+    scene.destroy_entity(entity);
+    EXPECT_FALSE(scene.contains(entity));
+    EXPECT_THROW(entity.add_component<mini::scene::LightComponent>(), std::invalid_argument);
 }
 
 TEST(Scene, DestroyEntityInvalidatesOnlyThatEntity) {

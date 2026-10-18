@@ -104,7 +104,8 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
         const auto entity = context.selected_entity();
         if (entity) {
             // Selection is resolved each frame; no component pointer survives a scene change.
-            ImGui::PushID(static_cast<int>(entt::to_integral(entity.handle())));
+            const auto entity_id = entity.get_component<mini::scene::IDComponent>().id_.to_string();
+            ImGui::PushID(entity_id.c_str());
             if (entity.has_component<mini::scene::TagComponent>()) {
                 ImGui::InputText("Name", &entity.get_component<mini::scene::TagComponent>().name_);
             }

@@ -31,6 +31,7 @@ public:
     bool operator==(const Entity& other) const { return handle_ == other.handle_ && scene_ == other.scene_; }
 
 private:
+    friend class Scene;
     entt::entity handle_ = entt::null;
     Scene* scene_ = nullptr;
 };
