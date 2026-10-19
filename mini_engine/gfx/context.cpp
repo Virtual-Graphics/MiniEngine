@@ -26,15 +26,22 @@ Context::Context(SDL_Window* window)
         : window_(window) {
     gl_context_ = SDL_GL_CreateContext(window_);
     if (!gl_context_) {
-        throw std::runtime_error(std::string("SDL_GL_CreateContext failed: ") + SDL_GetError());
+        const std::string reason = SDL_GetError();
+        base::log::error("SDL_GL_CreateContext failed: {}", reason);
+        throw std::runtime_error("SDL_GL_CreateContext failed: " + reason);
     }
 
     if (!SDL_GL_MakeCurrent(window_, static_cast<SDL_GLContext>(gl_context_))) {
-        throw std::runtime_error(std::string("SDL_GL_MakeCurrent failed: ") + SDL_GetError());
+        const std::string reason = SDL_GetError();
+        base::log::error("SDL_GL_MakeCurrent failed: {}", reason);
+        throw std::runtime_error("SDL_GL_MakeCurrent failed: " + reason);
     }
-    SDL_GL_SetSwapInterval(1);
+    if (!SDL_GL_SetSwapInterval(1)) {
+        base::log::warn("Could not enable VSync: {}", SDL_GetError());
+    }
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress))) {
+        base::log::error("gladLoadGLLoader failed: could not load OpenGL functions");
         throw std::runtime_error("gladLoadGLLoader failed: could not load OpenGL functions");
     }
 
@@ -54,6 +61,8 @@ Context::Context(SDL_Window* window)
         .max_render_target_width = static_cast<std::uint32_t>(std::min({ texture_size, framebuffer_width, viewport_size[0] })),
         .max_render_target_height = static_cast<std::uint32_t>(std::min({ texture_size, framebuffer_height, viewport_size[1] })),
     };
+
+    base::log::debug("Render target limit: {}x{}", limits_.max_render_target_width, limits_.max_render_target_height);
 }
 
 Context::~Context() {

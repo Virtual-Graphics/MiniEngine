@@ -1,5 +1,7 @@
 #include "editor/editor_context.h"
 
+#include "base/logger.h"
+
 #include <stdexcept>
 #include <utility>
 
@@ -26,7 +28,10 @@ mini::scene::Entity EditorContext::create_entity() {
 
 void EditorContext::destroy_entity(mini::scene::Entity entity) {
     if (!entity) return;
-    if (!scene_->contains(entity)) throw std::invalid_argument("Entity belongs to a different scene");
+    if (!scene_->contains(entity)) {
+        base::log::error("Cannot destroy an entity that belongs to a different scene");
+        throw std::invalid_argument("Entity belongs to a different scene");
+    }
     if (selected_ == entity) selected_ = {};
     scene_->destroy_entity(entity);
 }

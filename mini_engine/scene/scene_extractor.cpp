@@ -1,5 +1,6 @@
 #include "scene/scene_extractor.h"
 
+#include "base/logger.h"
 #include "scene/components.h"
 #include "scene/scene.h"
 
@@ -46,6 +47,7 @@ render::RenderData SceneExtractor::extract(const Scene& scene, const Options& op
     } else {
         const auto camera = find_camera(scene, options.camera_policy_);
         if (camera.camera_ == nullptr) {
+            base::log::error("SceneExtractor: scene has no camera");
             throw std::runtime_error("SceneExtractor: scene has no camera");
         }
         data.camera_ = make_camera_data(*camera.camera_, camera.world_transform_);

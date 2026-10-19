@@ -46,6 +46,7 @@ private:
     std::unique_ptr<Texture> color_;
     std::unique_ptr<Texture> depth_;
     FrameBuffer frame_buffer_;
+    bool created_before_ = false;
 };
 
 } // namespace mini::gfx

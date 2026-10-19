@@ -35,6 +35,7 @@ public:
             base::log::error("Program link failed:\n{}", log);
             throw std::runtime_error("Program link failed");
         }
+        base::log::debug("Linked program {}", id_);
     }
 
     void use() const { glUseProgram(id_); }

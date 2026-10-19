@@ -27,6 +27,8 @@ void EditorLayer::on_attach() {
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     renderer_ = std::make_unique<mini::render::Renderer>();
     context_.set_scene(create_default_scene(*renderer_));
+    const auto entity_count = context_.scene().registry().view<mini::scene::TagComponent>().size();
+    base::log::info("Editor initialized with {} entities", entity_count);
 }
 
 void EditorLayer::on_detach() {
@@ -101,6 +103,7 @@ void EditorLayer::update_camera(base::Timestep dt) {
             started = true;
             ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
             SDL_HideCursor();
+            base::log::debug("Editor camera control started");
         } else {
             base::log::warn("Could not capture editor camera mouse: {}", SDL_GetError());
         }
@@ -121,6 +124,7 @@ void EditorLayer::release_camera() {
     SDL_ShowCursor();
     ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NoMouseCursorChange;
     controlling_camera_ = false;
+    base::log::debug("Editor camera control released");
 }
 
 void EditorLayer::on_render() {

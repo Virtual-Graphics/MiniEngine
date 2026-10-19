@@ -91,8 +91,13 @@ void RenderTarget::create() {
         throw std::runtime_error("RenderTarget framebuffer incomplete");
     }
 
-    base::log::info("RenderTarget created: {}x{} (color: {}, depth: {})", spec_.width, spec_.height,
-            spec_.color_format ? "on" : "off", spec_.depth_format ? "on" : "off");
+    if (!created_before_) {
+        base::log::info("RenderTarget created: {}x{} (color: {}, depth: {})", spec_.width, spec_.height,
+                spec_.color_format ? "on" : "off", spec_.depth_format ? "on" : "off");
+        created_before_ = true;
+    } else {
+        base::log::debug("RenderTarget resized: {}x{}", spec_.width, spec_.height);
+    }
 }
 
 } // namespace mini::gfx

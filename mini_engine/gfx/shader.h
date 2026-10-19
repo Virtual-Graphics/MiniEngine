@@ -21,7 +21,9 @@ public:
         compile(type, source);
     }
 
-    Shader(Type type, const std::filesystem::path& path) : Shader(type,read_file(path.string())) {}
+    Shader(Type type, const std::filesystem::path& path) : Shader(type,read_file(path.string())) {
+        base::log::debug("Compiled {} shader: {}", type_name(type), path.string());
+    }
 
     Shader(Type type, const char* source) : Shader(type,std::string(source)) {}
 
@@ -59,10 +61,21 @@ private:
         return log;
     }
 
+    static const char* type_name(Type type) {
+        switch (type) {
+        case Type::Vertex:   return "vertex";
+        case Type::Fragment: return "fragment";
+        case Type::Compute:  return "compute";
+        }
+        return "unknown";
+    }
+
     static std::string read_file(const std::string& path){
         std::ifstream file(path, std::ios::binary);
-        if (!file.is_open())
+        if (!file.is_open()) {
+            base::log::error("Could not open shader file: {}", path);
             throw std::runtime_error("Cant open shader file :" + path);
+        }
         std::ostringstream oss;
         oss << file.rdbuf();
         return oss.str();

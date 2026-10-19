@@ -1,5 +1,7 @@
 #include "scene/scene.h"
 
+#include "base/logger.h"
+
 namespace mini::scene {
 namespace {
 
@@ -41,17 +43,22 @@ Entity Scene::create_entity(const std::string& name) {
     registry_.emplace<IDComponent>(entity);
     registry_.emplace<TagComponent>(entity, TagComponent{ name });
     registry_.emplace<TransformComponent>(entity);
+    base::log::debug("Created entity '{}' (handle {})", name, static_cast<std::uint32_t>(entity));
     return Entity{ entity, *this };
 }
 
 bool Scene::contains(Entity entity) const { return entity.scene_ == this && registry_.valid(entity.handle_); }
 
 void Scene::require_entity(Entity entity) const {
-    if (!contains(entity)) throw std::invalid_argument("Entity is invalid or belongs to another scene");
+    if (!contains(entity)) {
+        base::log::error("Entity is invalid or belongs to another scene");
+        throw std::invalid_argument("Entity is invalid or belongs to another scene");
+    }
 }
 
 void Scene::destroy_entity(Entity entity) {
     require_entity(entity);
+    base::log::debug("Destroyed entity (handle {})", static_cast<std::uint32_t>(entity.handle_));
     registry_.destroy(entity.handle());
 }
 

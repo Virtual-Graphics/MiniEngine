@@ -1,5 +1,6 @@
 #include "render/pipeline/shadow_pass.h"
 
+#include "base/logger.h"
 #include "gfx/command.h"
 #include "gfx/debug.h"
 #include "gfx/render_target.h"
@@ -63,6 +64,7 @@ void ShadowPass::ensure_target(std::uint32_t map_size) {
 
     target_ = std::make_unique<gfx::RenderTarget>(spec);
     gfx::set_object_label(GL_TEXTURE, target_->depth()->image().id(), "shadow map");
+    base::log::debug("Shadow map created: {}x{}", map_size, map_size);
 }
 
 void ShadowPass::prepare(PassContext& ctx) {

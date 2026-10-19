@@ -1,13 +1,22 @@
 #pragma once
 
+#include <mutex>
 #include <utility>
 
 #include <spdlog/spdlog.h>
 
 namespace base {
 inline void initLogger() {
-    spdlog::set_pattern("[%^%l%$] %v");
-    spdlog::set_level(spdlog::level::trace);
+    static std::once_flag once;
+    std::call_once(once, [] {
+        spdlog::set_pattern("[%T.%e] [%^%l%$] %v");
+#ifdef NDEBUG
+        spdlog::set_level(spdlog::level::info);
+#else
+        spdlog::set_level(spdlog::level::debug);
+#endif
+        spdlog::flush_on(spdlog::level::warn);
+    });
 }
 
 namespace log {
