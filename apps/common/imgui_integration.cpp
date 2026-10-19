@@ -73,10 +73,10 @@ void ImGuiIntegration::render() {
     ImGui::SetCurrentContext(context_);
 
     // The overlay draws over the scene without clearing its framebuffer.
-    mini::gfx::RenderTarget::unbind();
-    mini::gfx::Command::set_viewport(window_.width(), window_.height());
+    vulcal::gfx::RenderTarget::unbind();
+    vulcal::gfx::Command::set_viewport(window_.width(), window_.height());
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    mini::gfx::PipelineState::reset_cache();
+    vulcal::gfx::PipelineState::reset_cache();
 }
 
 bool ImGuiIntegration::wants_mouse() const {

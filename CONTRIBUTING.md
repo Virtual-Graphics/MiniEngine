@@ -1,4 +1,4 @@
-# Contributing for MiniEngine
+# Contributing for VulcalEngine
 
 ## Naming Conventions
 - 所有的 文件 和 目录 都应该采用小写加下滑线命名即 **Snake Case**，特殊文件除外如 `README.md`、`CMakeLists.txt`。  

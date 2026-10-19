@@ -45,24 +45,24 @@ public:
     void on_attach() override {
         auto& window = application().get_window();
 
-        mini::gfx::RenderTarget::Spec target_spec;
+        vulcal::gfx::RenderTarget::Spec target_spec;
         target_spec.width = window.width();
         target_spec.height = window.height();
-        target_spec.color_format = mini::gfx::Image::Format::RGBA8;
-        target_spec.depth_format = mini::gfx::Image::Format::Depth24Stencil8;
-        render_target_ = std::make_unique<mini::gfx::RenderTarget>(target_spec);
-        mini::gfx::set_object_label(GL_TEXTURE, render_target_->color()->image().id(), "render target color");
+        target_spec.color_format = vulcal::gfx::Image::Format::RGBA8;
+        target_spec.depth_format = vulcal::gfx::Image::Format::Depth24Stencil8;
+        render_target_ = std::make_unique<vulcal::gfx::RenderTarget>(target_spec);
+        vulcal::gfx::set_object_label(GL_TEXTURE, render_target_->color()->image().id(), "render target color");
 
         std::filesystem::path assets_dir = ASSETS_DIR;
-        mesh_ = std::make_unique<mini::MeshData>(mini::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj"));
+        mesh_ = std::make_unique<vulcal::MeshData>(vulcal::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj"));
 
         vbo_.set_data(mesh_->vertices_);
-        ibo_.set_data(mesh_->indices_, mini::gfx::IndexBuffer::Type::Uint32);
+        ibo_.set_data(mesh_->indices_, vulcal::gfx::IndexBuffer::Type::Uint32);
 
-        const mini::gfx::VertexLayout mesh_layout{
-            { { 0, 3, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, position) },
-                { 1, 3, GL_FLOAT, GL_FALSE, offsetof(mini::Vertex, normal) } },
-            sizeof(mini::Vertex)
+        const vulcal::gfx::VertexLayout mesh_layout{
+            { { 0, 3, GL_FLOAT, GL_FALSE, offsetof(vulcal::Vertex, position) },
+                { 1, 3, GL_FLOAT, GL_FALSE, offsetof(vulcal::Vertex, normal) } },
+            sizeof(vulcal::Vertex)
         };
 
         mesh_vao_.set_vertex_buffer(vbo_, mesh_layout);
@@ -77,9 +77,9 @@ public:
         const std::vector<std::uint32_t> quad_indices{ 0, 1, 2, 2, 3, 0 };
 
         quad_vbo_.set_data(quad_vertices);
-        quad_ibo_.set_data(quad_indices, mini::gfx::IndexBuffer::Type::Uint32);
+        quad_ibo_.set_data(quad_indices, vulcal::gfx::IndexBuffer::Type::Uint32);
 
-        const mini::gfx::VertexLayout quad_layout{
+        const vulcal::gfx::VertexLayout quad_layout{
             {
                 { 0, 2, GL_FLOAT, GL_FALSE, offsetof(QuadVertex, position) },
                 { 1, 2, GL_FLOAT, GL_FALSE, offsetof(QuadVertex, uv) },
@@ -97,24 +97,24 @@ public:
         model_ = glm::scale(model_, glm::vec3(10.0f));
         model_ = glm::translate(model_, glm::vec3{ 0.0f, -1.0f, 0.0f });
 
-        mesh_pipeline_ = mini::gfx::PipelineState({ .depth_test = true });
-        screen_pipeline_ = mini::gfx::PipelineState();
+        mesh_pipeline_ = vulcal::gfx::PipelineState({ .depth_test = true });
+        screen_pipeline_ = vulcal::gfx::PipelineState();
 
         std::filesystem::path shaders_dir = SHADERS_DIR;
 
-        vertex_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Vertex, shaders_dir / "blinn_phong.vert");
-        fragment_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Fragment, shaders_dir / "blinn_phong.frag");
+        vertex_shader_ = std::make_unique<vulcal::gfx::Shader>(vulcal::gfx::Shader::Type::Vertex, shaders_dir / "blinn_phong.vert");
+        fragment_shader_ = std::make_unique<vulcal::gfx::Shader>(vulcal::gfx::Shader::Type::Fragment, shaders_dir / "blinn_phong.frag");
 
-        program_ = std::make_unique<mini::gfx::Program>();
+        program_ = std::make_unique<vulcal::gfx::Program>();
         program_->attach(*vertex_shader_);
         program_->attach(*fragment_shader_);
         program_->link();
         program_->bind_uniform_block("CameraBlock", 0);
 
-        screen_vertex_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Vertex, shaders_dir / "screen.vert");
-        screen_fragment_shader_ = std::make_unique<mini::gfx::Shader>(mini::gfx::Shader::Type::Fragment, shaders_dir / "screen.frag");
+        screen_vertex_shader_ = std::make_unique<vulcal::gfx::Shader>(vulcal::gfx::Shader::Type::Vertex, shaders_dir / "screen.vert");
+        screen_fragment_shader_ = std::make_unique<vulcal::gfx::Shader>(vulcal::gfx::Shader::Type::Fragment, shaders_dir / "screen.frag");
 
-        screen_program_ = std::make_unique<mini::gfx::Program>();
+        screen_program_ = std::make_unique<vulcal::gfx::Program>();
         screen_program_->attach(*screen_vertex_shader_);
         screen_program_->attach(*screen_fragment_shader_);
         screen_program_->link();
@@ -152,27 +152,27 @@ public:
         render_target_->clear(clear_color_, 1.0f);
 
         {
-            mini::gfx::DebugScope scope("mesh pass");
-            mini::gfx::Command::apply(mesh_pipeline_);
+            vulcal::gfx::DebugScope scope("mesh pass");
+            vulcal::gfx::Command::apply(mesh_pipeline_);
             program_->use();
             program_->set("u_model", model_);
-            mini::gfx::Command::draw_indexed(mesh_vao_);
+            vulcal::gfx::Command::draw_indexed(mesh_vao_);
         }
 
-        mini::gfx::RenderTarget::unbind();
+        vulcal::gfx::RenderTarget::unbind();
 
         auto& window = application().get_window();
-        mini::gfx::Command::set_viewport(window.width(), window.height());
-        mini::gfx::Command::clear(clear_color_, 1.0f);
+        vulcal::gfx::Command::set_viewport(window.width(), window.height());
+        vulcal::gfx::Command::clear(clear_color_, 1.0f);
 
         {
-            mini::gfx::DebugScope scope("screen pass");
-            mini::gfx::Command::apply(screen_pipeline_);
+            vulcal::gfx::DebugScope scope("screen pass");
+            vulcal::gfx::Command::apply(screen_pipeline_);
             screen_program_->use();
             screen_program_->set("u_texture", 0);
             render_target_->color()->bind(0);
-            mini::gfx::Command::draw_indexed(quad_vao_);
-            mini::gfx::Program::unuse();
+            vulcal::gfx::Command::draw_indexed(quad_vao_);
+            vulcal::gfx::Program::unuse();
         }
     }
 
@@ -183,15 +183,15 @@ private:
         camera_ubo_.set_sub_data(camera_, 0);
     }
 
-    std::unique_ptr<mini::gfx::RenderTarget> render_target_;
-    mini::gfx::VertexBuffer vbo_;
-    mini::gfx::IndexBuffer ibo_;
-    mini::gfx::VertexArray mesh_vao_;
-    mini::gfx::VertexBuffer quad_vbo_;
-    mini::gfx::IndexBuffer quad_ibo_;
-    mini::gfx::VertexArray quad_vao_;
-    mini::gfx::UniformBuffer camera_ubo_;
-    std::unique_ptr<mini::MeshData> mesh_;
+    std::unique_ptr<vulcal::gfx::RenderTarget> render_target_;
+    vulcal::gfx::VertexBuffer vbo_;
+    vulcal::gfx::IndexBuffer ibo_;
+    vulcal::gfx::VertexArray mesh_vao_;
+    vulcal::gfx::VertexBuffer quad_vbo_;
+    vulcal::gfx::IndexBuffer quad_ibo_;
+    vulcal::gfx::VertexArray quad_vao_;
+    vulcal::gfx::UniformBuffer camera_ubo_;
+    std::unique_ptr<vulcal::MeshData> mesh_;
     float angle_ = 0;
     float rotate_speed_ = 60.0;
     glm::mat4 model_;
@@ -200,21 +200,21 @@ private:
     glm::vec3 view_pos_;
     CameraBlock camera_;
     glm::vec4 clear_color_{ 0.08f, 0.09f, 0.11f, 1.0f };
-    mini::gfx::PipelineState mesh_pipeline_;
-    mini::gfx::PipelineState screen_pipeline_;
-    std::unique_ptr<mini::gfx::Shader> vertex_shader_;
-    std::unique_ptr<mini::gfx::Shader> fragment_shader_;
-    std::unique_ptr<mini::gfx::Program> program_;
-    std::unique_ptr<mini::gfx::Shader> screen_vertex_shader_;
-    std::unique_ptr<mini::gfx::Shader> screen_fragment_shader_;
-    std::unique_ptr<mini::gfx::Program> screen_program_;
+    vulcal::gfx::PipelineState mesh_pipeline_;
+    vulcal::gfx::PipelineState screen_pipeline_;
+    std::unique_ptr<vulcal::gfx::Shader> vertex_shader_;
+    std::unique_ptr<vulcal::gfx::Shader> fragment_shader_;
+    std::unique_ptr<vulcal::gfx::Program> program_;
+    std::unique_ptr<vulcal::gfx::Shader> screen_vertex_shader_;
+    std::unique_ptr<vulcal::gfx::Shader> screen_fragment_shader_;
+    std::unique_ptr<vulcal::gfx::Program> screen_program_;
 };
 
 int main() {
     engine::ApplicationCreateInfo info;
     info.width = 1280;
     info.height = 720;
-    info.title = "MiniEngine - Render To Texture Test";
+    info.title = "VulcalEngine - Render To Texture Test";
 
     engine::Application app(info);
     app.push_layer(std::make_unique<RenderToTextureLayer>());

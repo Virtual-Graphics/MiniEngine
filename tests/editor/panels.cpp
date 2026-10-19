@@ -87,7 +87,7 @@ TEST_F(EditorPanels, BlankContextMenuCreatesAndSelectsEntity) {
     click({ 100.0f, 300.0f }, ImGuiMouseButton_Right);
     choose_popup_action();
     ASSERT_TRUE(context_.selected_entity());
-    EXPECT_EQ(context_.scene().registry().view<mini::scene::TagComponent>().size(), 1u);
+    EXPECT_EQ(context_.scene().registry().view<vulcal::scene::TagComponent>().size(), 1u);
 }
 
 TEST_F(EditorPanels, EntityContextMenuDeletesEntityAndClearsInspectorSelection) {
@@ -130,7 +130,7 @@ TEST_F(EditorPanels, InspectorEditsNameThroughTextInput) {
     io.AddKeyEvent(ImGuiMod_Ctrl, false);
     io.AddInputCharactersUTF8("Renamed entity");
     frame();
-    EXPECT_EQ(entity.get_component<mini::scene::TagComponent>().name_, "Renamed entity");
+    EXPECT_EQ(entity.get_component<vulcal::scene::TagComponent>().name_, "Renamed entity");
 }
 
 TEST_F(EditorPanels, InspectorPreventsSingularScaleFromNumericInput) {
@@ -152,7 +152,7 @@ TEST_F(EditorPanels, InspectorPreventsSingularScaleFromNumericInput) {
     frame();
     io.AddKeyEvent(ImGuiKey_Enter, true);
     frame();
-    const auto scale = entity.get_component<mini::scene::TransformComponent>().scale_;
+    const auto scale = entity.get_component<vulcal::scene::TransformComponent>().scale_;
     EXPECT_NEAR(scale.x, 0.0001f, 1e-6f);
     EXPECT_FLOAT_EQ(scale.y, 1.0f);
     EXPECT_FLOAT_EQ(scale.z, 1.0f);
@@ -164,24 +164,24 @@ TEST_F(EditorPanels, InspectorAddsAndRemovesOptionalComponentThroughMenus) {
     frame();
     open_add_component();
     choose_popup_action();
-    ASSERT_TRUE(entity.has_component<mini::scene::MeshRendererComponent>());
+    ASSERT_TRUE(entity.has_component<vulcal::scene::MeshRendererComponent>());
     auto* window = ImGui::FindWindowByName("Inspector");
     const auto start = window->DC.CursorStartPos;
     const float y = start.y + ImGui::GetFrameHeightWithSpacing() * 5.0f + ImGui::GetTextLineHeightWithSpacing();
     click({ start.x + 40.0f, y + ImGui::GetFrameHeight() * 0.5f }, ImGuiMouseButton_Right);
     choose_popup_action();
-    EXPECT_FALSE(entity.has_component<mini::scene::MeshRendererComponent>());
-    EXPECT_TRUE(entity.has_component<mini::scene::TransformComponent>());
+    EXPECT_FALSE(entity.has_component<vulcal::scene::MeshRendererComponent>());
+    EXPECT_TRUE(entity.has_component<vulcal::scene::TransformComponent>());
 }
 
 TEST_F(EditorPanels, InspectorDisablesSecondSceneLight) {
-    context_.scene().create_entity("Sun").add_component<mini::scene::LightComponent>();
+    context_.scene().create_entity("Sun").add_component<vulcal::scene::LightComponent>();
     auto entity = context_.create_entity();
     frame();
     frame();
     open_add_component();
     choose_popup_action(2);
-    EXPECT_FALSE(entity.has_component<mini::scene::LightComponent>());
+    EXPECT_FALSE(entity.has_component<vulcal::scene::LightComponent>());
     EXPECT_EQ(ImGui::GetCurrentContext()->OpenPopupStack.Size, 1);
 }
 

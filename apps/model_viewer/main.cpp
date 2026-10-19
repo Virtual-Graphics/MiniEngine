@@ -24,20 +24,20 @@ public:
 
     void on_attach() override {
         const std::filesystem::path assets_dir = ASSETS_DIR;
-        const mini::MeshData mesh_data = mini::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj");
+        const vulcal::MeshData mesh_data = vulcal::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj");
         vertex_count_ = mesh_data.vertices_.size();
         triangle_count_ = mesh_data.indices_.size() / 3;
 
-        renderer_ = std::make_unique<mini::render::Renderer>();
+        renderer_ = std::make_unique<vulcal::render::Renderer>();
         const auto mesh = renderer_->create_mesh(mesh_data);
 
-        mini::render::Material material;
+        vulcal::render::Material material;
         material.diffuse_ = glm::vec3{ 0.9f };
         material.specular_ = glm::vec3{ 0.08f };
         material.shininess_ = 8.0f;
         const auto material_handle = renderer_->create_material(material);
 
-        mini::MeshData ground_data;
+        vulcal::MeshData ground_data;
         const float half = 20.0f;
         const float y = -1.05f;
         ground_data.vertices_ = {
@@ -49,35 +49,35 @@ public:
         ground_data.indices_ = { 0, 1, 2, 2, 3, 0 };
         const auto ground_mesh = renderer_->create_mesh(ground_data);
 
-        mini::render::Material ground_material;
+        vulcal::render::Material ground_material;
         ground_material.diffuse_ = glm::vec3{ 0.55f, 0.57f, 0.6f };
         ground_material.specular_ = glm::vec3{ 0.02f };
         ground_material.shininess_ = 4.0f;
         const auto ground_material_handle = renderer_->create_material(ground_material);
 
-        scene_ = std::make_unique<mini::scene::Scene>();
+        scene_ = std::make_unique<vulcal::scene::Scene>();
 
         bunny_entity_ = scene_->create_entity("Bunny");
-        auto& bunny_transform = bunny_entity_.get_component<mini::scene::TransformComponent>();
+        auto& bunny_transform = bunny_entity_.get_component<vulcal::scene::TransformComponent>();
         bunny_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
         bunny_transform.scale_ = glm::vec3{ 15.0f };
-        auto& bunny_renderer = bunny_entity_.add_component<mini::scene::MeshRendererComponent>();
+        auto& bunny_renderer = bunny_entity_.add_component<vulcal::scene::MeshRendererComponent>();
         bunny_renderer.mesh_ = mesh;
         bunny_renderer.material_ = material_handle;
 
         auto ground_entity = scene_->create_entity("Ground");
-        auto& ground_renderer = ground_entity.add_component<mini::scene::MeshRendererComponent>();
+        auto& ground_renderer = ground_entity.add_component<vulcal::scene::MeshRendererComponent>();
         ground_renderer.mesh_ = ground_mesh;
         ground_renderer.material_ = ground_material_handle;
 
         environment_entity_ = scene_->create_entity("Environment");
-        auto& environment = environment_entity_.add_component<mini::scene::EnvironmentComponent>();
+        auto& environment = environment_entity_.add_component<vulcal::scene::EnvironmentComponent>();
         environment.ambient_color_ = glm::vec3{ 0.15f };
         environment.clear_color_ = glm::vec4{ 0.08f, 0.09f, 0.11f, 1.0f };
 
         light_entity_ = scene_->create_entity("Directional Light");
-        auto& light = light_entity_.add_component<mini::scene::LightComponent>();
-        light_entity_.get_component<mini::scene::TransformComponent>().rotation_ =
+        auto& light = light_entity_.add_component<vulcal::scene::LightComponent>();
+        light_entity_.get_component<vulcal::scene::TransformComponent>().rotation_ =
                 glm::eulerAngles(glm::quatLookAt(glm::normalize(glm::vec3{ -1.0f }), glm::vec3{ 0.0f, 1.0f, 0.0f }));
         light.color_ = glm::vec3{ 1.0f };
         light.intensity_ = 1.0f;
@@ -88,14 +88,14 @@ public:
         light.shadow_far_ = 40.0f;
 
         camera_entity_ = scene_->create_entity("Main Camera");
-        auto& camera_transform = camera_entity_.get_component<mini::scene::TransformComponent>();
+        auto& camera_transform = camera_entity_.get_component<vulcal::scene::TransformComponent>();
         const glm::vec3 camera_position{ 0.0f, 4.0f, 8.0f };
         const glm::mat4 camera_world =
                 glm::inverse(glm::lookAt(camera_position, glm::vec3{ 0.0f, -0.5f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f }));
         camera_transform.translation_ = glm::vec3{ camera_world[3] };
         camera_transform.rotation_ = glm::eulerAngles(glm::quat_cast(camera_world));
 
-        auto& camera = camera_entity_.add_component<mini::scene::CameraComponent>();
+        auto& camera = camera_entity_.add_component<vulcal::scene::CameraComponent>();
         camera.primary_ = true;
         camera.perspective_fov_y_ = glm::radians(45.0f);
         camera.perspective_near_ = 0.1f;
@@ -114,7 +114,7 @@ public:
             angle_ = std::fmod(angle_ + dt.get_seconds() * rotate_speed_, 360.0f);
         }
 
-        auto& bunny_transform = bunny_entity_.get_component<mini::scene::TransformComponent>();
+        auto& bunny_transform = bunny_entity_.get_component<vulcal::scene::TransformComponent>();
         bunny_transform.rotation_.y = glm::radians(angle_);
 
         update_camera_aspect();
@@ -142,9 +142,9 @@ private:
             ImGui::Checkbox("Auto rotate", &rotate_model_);
             ImGui::SliderFloat("Speed (deg/s)", &rotate_speed_, 0.0f, 180.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp);
 
-            auto& light = light_entity_.get_component<mini::scene::LightComponent>();
+            auto& light = light_entity_.get_component<vulcal::scene::LightComponent>();
             if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
-                auto& transform = light_entity_.get_component<mini::scene::TransformComponent>();
+                auto& transform = light_entity_.get_component<vulcal::scene::TransformComponent>();
                 auto rotation = glm::degrees(transform.rotation_);
                 if (ImGui::DragFloat3("Rotation (deg)", &rotation.x, 0.5f) && std::isfinite(rotation.x) && std::isfinite(rotation.y) &&
                         std::isfinite(rotation.z)) {
@@ -155,7 +155,7 @@ private:
             }
 
             if (ImGui::CollapsingHeader("Environment", ImGuiTreeNodeFlags_DefaultOpen)) {
-                auto& environment = environment_entity_.get_component<mini::scene::EnvironmentComponent>();
+                auto& environment = environment_entity_.get_component<vulcal::scene::EnvironmentComponent>();
                 ImGui::ColorEdit3("Ambient", &environment.ambient_color_.x);
                 ImGui::ColorEdit3("Background", &environment.clear_color_.x);
             }
@@ -186,17 +186,17 @@ private:
 
     void update_camera_aspect() {
         auto& window = application().get_window();
-        auto& camera = camera_entity_.get_component<mini::scene::CameraComponent>();
+        auto& camera = camera_entity_.get_component<vulcal::scene::CameraComponent>();
         camera.set_aspect(static_cast<float>(window.width()) / static_cast<float>(window.height()));
     }
 
-    std::unique_ptr<mini::render::Renderer> renderer_;
-    std::unique_ptr<mini::scene::Scene> scene_;
-    mini::scene::Entity bunny_entity_;
-    mini::scene::Entity camera_entity_;
-    mini::scene::Entity light_entity_;
-    mini::scene::Entity environment_entity_;
-    mini::scene::SceneExtractor extractor_;
+    std::unique_ptr<vulcal::render::Renderer> renderer_;
+    std::unique_ptr<vulcal::scene::Scene> scene_;
+    vulcal::scene::Entity bunny_entity_;
+    vulcal::scene::Entity camera_entity_;
+    vulcal::scene::Entity light_entity_;
+    vulcal::scene::Entity environment_entity_;
+    vulcal::scene::SceneExtractor extractor_;
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
     std::size_t vertex_count_ = 0;
     std::size_t triangle_count_ = 0;
@@ -209,7 +209,7 @@ int main() {
     engine::ApplicationCreateInfo info;
     info.width = 1280;
     info.height = 720;
-    info.title = "MiniEngine - Model Viewer";
+    info.title = "VulcalEngine - Model Viewer";
 
     engine::Application app(info);
     app.push_layer(std::make_unique<ModelViewerLayer>());

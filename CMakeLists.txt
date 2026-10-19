@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(mini_engine LANGUAGES C CXX)
+project(vulcal_engine LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -16,7 +16,7 @@ option(BUILD_APPS "Build the Engine Apps" ON)
 option(BUILD_TESTS "Build the Engine Tests" ON)
 
 if (BUILD_CORE)
-    add_subdirectory(mini_engine)
+    add_subdirectory(vulcal_engine)
 endif()
 
 if (BUILD_TESTS)

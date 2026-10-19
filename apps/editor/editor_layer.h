@@ -13,7 +13,7 @@
 namespace apps {
 class ImGuiIntegration;
 }
-namespace mini::render {
+namespace vulcal::render {
 class Renderer;
 }
 
@@ -35,10 +35,10 @@ private:
     void release_camera();
 
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
-    std::unique_ptr<mini::render::Renderer> renderer_;
+    std::unique_ptr<vulcal::render::Renderer> renderer_;
     EditorContext context_;
     EditorCamera camera_;
-    mini::scene::SceneExtractor extractor_;
+    vulcal::scene::SceneExtractor extractor_;
     HierarchyPanel hierarchy_;
     InspectorPanel inspector_;
     ViewportPanel viewport_;

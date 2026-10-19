@@ -13,7 +13,7 @@ namespace {
 bool section(const char* label) { return ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen); }
 
 template<typename Component, typename Draw>
-void draw_component(mini::scene::Entity entity, const char* label, Draw&& draw) {
+void draw_component(vulcal::scene::Entity entity, const char* label, Draw&& draw) {
     if (!entity.has_component<Component>()) return;
     ImGui::PushID(label);
     const bool expanded = section(label);
@@ -29,7 +29,7 @@ void draw_component(mini::scene::Entity entity, const char* label, Draw&& draw) 
 }
 
 template<typename Component>
-void add_component_item(EditorContext& context, mini::scene::Entity entity, const char* label, bool singleton = false) {
+void add_component_item(EditorContext& context, vulcal::scene::Entity entity, const char* label, bool singleton = false) {
     const bool already_attached = entity.has_component<Component>();
     bool occupied = false;
     if (singleton) context.scene().each<Component>([&](auto, const auto&) { occupied = true; });
@@ -49,7 +49,7 @@ void bounded_drag(const char* label, float& value, float minimum, float maximum 
     }
 }
 
-void draw_transform(mini::scene::TransformComponent& transform) {
+void draw_transform(vulcal::scene::TransformComponent& transform) {
     if (!section("Transform")) return;
     auto translation = transform.translation_;
     if (ImGui::DragFloat3("Position", &translation.x, 0.05f) && finite(translation)) transform.translation_ = translation;
@@ -64,13 +64,13 @@ void draw_transform(mini::scene::TransformComponent& transform) {
     }
 }
 
-void draw_camera(mini::scene::CameraComponent& camera) {
+void draw_camera(vulcal::scene::CameraComponent& camera) {
     ImGui::Checkbox("Primary", &camera.primary_);
     int projection = static_cast<int>(camera.projection_type_);
     if (ImGui::Combo("Projection", &projection, "Perspective\0Orthographic\0")) {
-        camera.projection_type_ = static_cast<mini::scene::CameraComponent::ProjectionType>(projection);
+        camera.projection_type_ = static_cast<vulcal::scene::CameraComponent::ProjectionType>(projection);
     }
-    if (camera.projection_type_ == mini::scene::CameraComponent::ProjectionType::Perspective) {
+    if (camera.projection_type_ == vulcal::scene::CameraComponent::ProjectionType::Perspective) {
         float fov = glm::degrees(camera.perspective_fov_y_);
         if (ImGui::SliderFloat("FOV (deg)", &fov, 1.0f, 179.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp) && std::isfinite(fov)) {
             camera.perspective_fov_y_ = glm::radians(fov);
@@ -95,7 +95,7 @@ void draw_camera(mini::scene::CameraComponent& camera) {
     ImGui::TextDisabled("Viewport uses the independent editor camera.");
 }
 
-void draw_light(mini::scene::LightComponent& light) {
+void draw_light(vulcal::scene::LightComponent& light) {
     ImGui::Text("Type: Directional");
     ImGui::TextDisabled("Direction follows Transform rotation (local -Z).");
     ImGui::ColorEdit3("Color", &light.color_.x);
@@ -127,37 +127,37 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
         const auto entity = context.selected_entity();
         if (entity) {
             // Selection is resolved each frame; no component pointer survives a scene change.
-            const auto entity_id = entity.get_component<mini::scene::IDComponent>().id_.to_string();
+            const auto entity_id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
             ImGui::PushID(entity_id.c_str());
-            if (entity.has_component<mini::scene::TagComponent>()) {
-                ImGui::InputText("Name", &entity.get_component<mini::scene::TagComponent>().name_);
+            if (entity.has_component<vulcal::scene::TagComponent>()) {
+                ImGui::InputText("Name", &entity.get_component<vulcal::scene::TagComponent>().name_);
             }
-            if (entity.has_component<mini::scene::IDComponent>()) {
-                const auto id = entity.get_component<mini::scene::IDComponent>().id_.to_string();
+            if (entity.has_component<vulcal::scene::IDComponent>()) {
+                const auto id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
                 ImGui::TextDisabled("UUID: %s", id.c_str());
             }
-            if (entity.has_component<mini::scene::TransformComponent>())
-                draw_transform(entity.get_component<mini::scene::TransformComponent>());
-            draw_component<mini::scene::MeshRendererComponent>(entity, "Mesh Renderer", [](auto& mesh) {
+            if (entity.has_component<vulcal::scene::TransformComponent>())
+                draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
+            draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
                 ImGui::Text("Mesh: %llu", static_cast<unsigned long long>(mesh.mesh_.value_));
                 ImGui::Text("Material: %llu", static_cast<unsigned long long>(mesh.material_.value_));
                 if (mesh.mesh_.value_ == 0 || mesh.material_.value_ == 0)
                     ImGui::TextDisabled("Not rendered: mesh and material must both be assigned.");
             });
-            draw_component<mini::scene::CameraComponent>(entity, "Camera", draw_camera);
-            draw_component<mini::scene::LightComponent>(entity, "Light", draw_light);
-            draw_component<mini::scene::EnvironmentComponent>(entity, "Environment", [](auto& environment) {
+            draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);
+            draw_component<vulcal::scene::LightComponent>(entity, "Light", draw_light);
+            draw_component<vulcal::scene::EnvironmentComponent>(entity, "Environment", [](auto& environment) {
                 ImGui::ColorEdit3("Ambient", &environment.ambient_color_.x);
                 ImGui::ColorEdit3("Background", &environment.clear_color_.x);
             });
             ImGui::TextDisabled("Right-click optional component headers to remove.");
             if (ImGui::Button("Add Component")) ImGui::OpenPopup("AddComponentMenu");
             if (ImGui::BeginPopup("AddComponentMenu")) {
-                add_component_item<mini::scene::MeshRendererComponent>(context, entity, "Mesh Renderer");
-                add_component_item<mini::scene::CameraComponent>(context, entity, "Camera");
-                add_component_item<mini::scene::LightComponent>(context, entity, "Light", true);
-                add_component_item<mini::scene::EnvironmentComponent>(context, entity, "Environment", true);
+                add_component_item<vulcal::scene::MeshRendererComponent>(context, entity, "Mesh Renderer");
+                add_component_item<vulcal::scene::CameraComponent>(context, entity, "Camera");
+                add_component_item<vulcal::scene::LightComponent>(context, entity, "Light", true);
+                add_component_item<vulcal::scene::EnvironmentComponent>(context, entity, "Environment", true);
                 ImGui::EndPopup();
             }
             ImGui::PopID();
