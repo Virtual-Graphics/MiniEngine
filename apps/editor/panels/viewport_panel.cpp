@@ -7,13 +7,19 @@
 
 namespace editor {
 
-void ViewportPanel::draw(bool& open, float camera_speed, const vulcal::gfx::Context::Limits& limits) {
+void ViewportPanel::draw(bool& open, float camera_speed, const vulcal::gfx::Context::Limits& limits, bool has_scene) {
     visible_ = false;
     focused_ = false;
     camera_requested_ = false;
     if (!open) return;
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0.0f, 0.0f });
     if (ImGui::Begin("Viewport", &open, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+        if (!has_scene) {
+            ImGui::TextDisabled("Create or open a project from File to begin.");
+            ImGui::End();
+            ImGui::PopStyleVar();
+            return;
+        }
         ImGui::Text("RMB: look | WASD: move | Q/E: down/up | Wheel: speed (%.2f)", camera_speed);
         const auto size = ImGui::GetContentRegionAvail();
         if (size.x >= 1.0f && size.y >= 1.0f) {

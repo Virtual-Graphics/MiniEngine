@@ -7,6 +7,9 @@
 #include "editor/panels/viewport_panel.h"
 #include "engine/layer.h"
 #include "scene/scene_extractor.h"
+#include "editor/dialog.h"
+#include "editor/new_project_dialog.h"
+#include "editor/project_session.h"
 
 #include <memory>
 
@@ -16,7 +19,6 @@ class ImGuiIntegration;
 namespace vulcal::render {
 class Renderer;
 }
-
 namespace vulcal::asset { class MeshCache; }
 
 namespace editor {
@@ -35,11 +37,21 @@ private:
     void draw_workspace();
     void update_camera(base::Timestep dt);
     void release_camera();
+    void draw_file_menu();
+    void save_scene_as();
+    void project_changed();
+    void run_operation(const std::function<void()>& operation);
+    std::filesystem::path scene_directory() const;
 
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
     std::unique_ptr<vulcal::render::Renderer> renderer_;
     std::unique_ptr<vulcal::asset::MeshCache> mesh_cache_;
+    std::unique_ptr<class NativeFileDialog> file_dialogs_;
+    vulcal::render::MaterialHandle default_material_;
     EditorContext context_;
+    ProjectSession session_{ context_ };
+    NewProjectDialog new_project_;
+    MessageDialog error_dialog_;
     EditorCamera camera_;
     vulcal::scene::SceneExtractor extractor_;
     HierarchyPanel hierarchy_;

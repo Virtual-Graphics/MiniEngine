@@ -11,6 +11,7 @@ namespace {
 class EditorPanels : public ::testing::Test {
 protected:
     void SetUp() override {
+        context_.set_scene(std::make_unique<vulcal::scene::Scene>());
         ImGui::CreateContext();
         auto& io = ImGui::GetIO();
         io.IniFilename = nullptr;
@@ -70,6 +71,16 @@ protected:
     editor::InspectorPanel inspector_;
     bool open_ = true;
 };
+
+TEST_F(EditorPanels, EmptyEditorHasNoEntityActions) {
+    editor::EditorContext empty;
+    ImGui::NewFrame();
+    EXPECT_NO_THROW(hierarchy_.draw(empty, open_));
+    EXPECT_NO_THROW(inspector_.draw(empty, open_));
+    ImGui::Render();
+    EXPECT_FALSE(empty.has_scene());
+    EXPECT_FALSE(empty.selected_entity());
+}
 
 TEST_F(EditorPanels, LeftClickSelectsEntityAndBlankClickClearsSelection) {
     auto entity = context_.scene().create_entity("Entity");

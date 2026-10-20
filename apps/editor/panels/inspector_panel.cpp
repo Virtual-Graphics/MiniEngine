@@ -138,13 +138,15 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
             }
             if (entity.has_component<vulcal::scene::TransformComponent>())
                 draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
-            draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [](auto& mesh) {
+            draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [&](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
-                const auto path = mesh.mesh_.generic_u8string();
-                ImGui::TextWrapped("Mesh: %s", path.empty() ? "None" : reinterpret_cast<const char*>(path.c_str()));
-                ImGui::Text("Material: %llu", static_cast<unsigned long long>(mesh.material_.value_));
-                if (mesh.mesh_.empty() || mesh.material_.value_ == 0)
-                    ImGui::TextDisabled("Not rendered: mesh and material must both be assigned.");
+                ImGui::TextWrapped("Mesh: %s", mesh.mesh_.empty() ? "None" : path_to_utf8(mesh.mesh_).c_str());
+                ImGui::BeginDisabled(!context.project() || !pick_mesh);
+                if (ImGui::Button("Choose mesh...")) pick_mesh(entity);
+                ImGui::EndDisabled();
+                ImGui::SameLine();
+                if (ImGui::Button("Clear")) mesh.mesh_.clear();
+                ImGui::TextDisabled("Uses the shared default material.");
             });
             draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);
             draw_component<vulcal::scene::LightComponent>(entity, "Light", draw_light);

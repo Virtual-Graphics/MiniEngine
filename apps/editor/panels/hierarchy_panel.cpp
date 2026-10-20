@@ -9,6 +9,11 @@ namespace editor {
 void HierarchyPanel::draw(EditorContext& context, bool& open) const {
     if (!open) return;
     if (ImGui::Begin("Hierarchy", &open)) {
+        if (!context.has_scene()) {
+            ImGui::TextDisabled("Create or open a project from File.");
+            ImGui::End();
+            return;
+        }
         vulcal::scene::Entity pending_delete;
         bool create = false;
         bool over_entity = false;
