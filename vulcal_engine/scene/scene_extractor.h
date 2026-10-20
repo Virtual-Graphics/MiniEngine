@@ -5,6 +5,7 @@
 
 #include <glm/gtc/quaternion.hpp>
 #include <optional>
+#include <functional>
 
 namespace vulcal::scene {
 
@@ -17,6 +18,8 @@ public:
     struct Options {
         CameraPolicy camera_policy_ = CameraPolicy::Primary;
         std::optional<render::CameraData> camera_override_;
+        std::function<render::MeshHandle(const std::filesystem::path&)> mesh_resolver_;
+        render::MaterialHandle default_material_;
     };
 
     render::RenderData extract(const Scene& scene) const;

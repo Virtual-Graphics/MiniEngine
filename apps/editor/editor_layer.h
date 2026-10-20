@@ -17,6 +17,8 @@ namespace vulcal::render {
 class Renderer;
 }
 
+namespace vulcal::asset { class MeshCache; }
+
 namespace editor {
 
 class EditorLayer : public engine::Layer {
@@ -36,6 +38,7 @@ private:
 
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
     std::unique_ptr<vulcal::render::Renderer> renderer_;
+    std::unique_ptr<vulcal::asset::MeshCache> mesh_cache_;
     EditorContext context_;
     EditorCamera camera_;
     vulcal::scene::SceneExtractor extractor_;

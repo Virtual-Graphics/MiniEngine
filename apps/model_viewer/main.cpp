@@ -1,4 +1,5 @@
 #include "asset/obj_loader.h"
+#include "asset/mesh_cache.h"
 #include "common/imgui_integration.h"
 #include "engine/application.h"
 #include "engine/layer.h"
@@ -29,7 +30,8 @@ public:
         triangle_count_ = mesh_data.indices_.size() / 3;
 
         renderer_ = std::make_unique<vulcal::render::Renderer>();
-        const auto mesh = renderer_->create_mesh(mesh_data);
+        mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
+        mesh_cache_->insert(assets_dir / "StanfordBunny.obj", mesh_data);
 
         vulcal::render::Material material;
         material.diffuse_ = glm::vec3{ 0.9f };
@@ -47,7 +49,7 @@ public:
             { { -half, y, half }, { 0.0f, 1.0f, 0.0f } },
         };
         ground_data.indices_ = { 0, 1, 2, 2, 3, 0 };
-        const auto ground_mesh = renderer_->create_mesh(ground_data);
+        mesh_cache_->insert(assets_dir / "procedural-ground", ground_data);
 
         vulcal::render::Material ground_material;
         ground_material.diffuse_ = glm::vec3{ 0.55f, 0.57f, 0.6f };
@@ -62,12 +64,12 @@ public:
         bunny_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
         bunny_transform.scale_ = glm::vec3{ 15.0f };
         auto& bunny_renderer = bunny_entity_.add_component<vulcal::scene::MeshRendererComponent>();
-        bunny_renderer.mesh_ = mesh;
+        bunny_renderer.mesh_ = assets_dir / "StanfordBunny.obj";
         bunny_renderer.material_ = material_handle;
 
         auto ground_entity = scene_->create_entity("Ground");
         auto& ground_renderer = ground_entity.add_component<vulcal::scene::MeshRendererComponent>();
-        ground_renderer.mesh_ = ground_mesh;
+        ground_renderer.mesh_ = assets_dir / "procedural-ground";
         ground_renderer.material_ = ground_material_handle;
 
         environment_entity_ = scene_->create_entity("Environment");
@@ -123,7 +125,9 @@ public:
     void on_detach() override { imgui_.reset(); }
 
     void on_render() override {
-        renderer_->render(extractor_.extract(*scene_));
+        vulcal::scene::SceneExtractor::Options options;
+        options.mesh_resolver_ = [this](const auto& path) { return mesh_cache_->load(path); };
+        renderer_->render(extractor_.extract(*scene_, options));
         imgui_->render();
     }
 
@@ -191,6 +195,7 @@ private:
     }
 
     std::unique_ptr<vulcal::render::Renderer> renderer_;
+    std::unique_ptr<vulcal::asset::MeshCache> mesh_cache_;
     std::unique_ptr<vulcal::scene::Scene> scene_;
     vulcal::scene::Entity bunny_entity_;
     vulcal::scene::Entity camera_entity_;

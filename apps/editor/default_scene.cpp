@@ -1,6 +1,7 @@
 #include "editor/default_scene.h"
 
 #include "asset/obj_loader.h"
+#include "asset/mesh_cache.h"
 #include "render/renderer.h"
 #include "scene/scene.h"
 
@@ -10,10 +11,11 @@
 
 namespace editor {
 
-std::unique_ptr<vulcal::scene::Scene> create_default_scene(vulcal::render::Renderer& renderer) {
+std::unique_ptr<vulcal::scene::Scene> create_default_scene(vulcal::render::Renderer& renderer, vulcal::asset::MeshCache& cache) {
     auto scene = std::make_unique<vulcal::scene::Scene>();
     const auto mesh_data = vulcal::asset::OBJImporter::load_obj(std::filesystem::path{ ASSETS_DIR } / "StanfordBunny.obj");
-    const auto mesh = renderer.create_mesh(mesh_data);
+    const auto mesh = std::filesystem::path{ ASSETS_DIR } / "StanfordBunny.obj";
+    cache.insert(mesh, mesh_data);
     vulcal::render::Material material;
     material.diffuse_ = glm::vec3{ 0.9f };
     material.specular_ = glm::vec3{ 0.08f };
@@ -41,7 +43,8 @@ std::unique_ptr<vulcal::scene::Scene> create_default_scene(vulcal::render::Rende
     ground_material.shininess_ = 4.0f;
     auto ground = scene->create_entity("Ground");
     auto& ground_mesh = ground.add_component<vulcal::scene::MeshRendererComponent>();
-    ground_mesh.mesh_ = renderer.create_mesh(ground_data);
+    ground_mesh.mesh_ = std::filesystem::path{ ASSETS_DIR } / "procedural-ground";
+    cache.insert(ground_mesh.mesh_, ground_data);
     ground_mesh.material_ = renderer.create_material(ground_material);
 
     auto environment_entity = scene->create_entity("Environment");

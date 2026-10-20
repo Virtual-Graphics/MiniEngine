@@ -140,9 +140,10 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
                 draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
             draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
-                ImGui::Text("Mesh: %llu", static_cast<unsigned long long>(mesh.mesh_.value_));
+                const auto path = mesh.mesh_.generic_u8string();
+                ImGui::TextWrapped("Mesh: %s", path.empty() ? "None" : reinterpret_cast<const char*>(path.c_str()));
                 ImGui::Text("Material: %llu", static_cast<unsigned long long>(mesh.material_.value_));
-                if (mesh.mesh_.value_ == 0 || mesh.material_.value_ == 0)
+                if (mesh.mesh_.empty() || mesh.material_.value_ == 0)
                     ImGui::TextDisabled("Not rendered: mesh and material must both be assigned.");
             });
             draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);

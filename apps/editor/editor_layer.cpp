@@ -1,5 +1,6 @@
 #include "editor/editor_layer.h"
 
+#include "asset/mesh_cache.h"
 #include "base/input.h"
 #include "base/logger.h"
 #include "common/imgui_integration.h"
@@ -26,13 +27,16 @@ void EditorLayer::on_attach() {
     io.IniFilename = "vulcal_editor.ini";
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     renderer_ = std::make_unique<vulcal::render::Renderer>();
-    context_.set_scene(create_default_scene(*renderer_));
+    mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
+    context_.set_scene(create_default_scene(*renderer_, *mesh_cache_));
     const auto entity_count = context_.scene().registry().view<vulcal::scene::TagComponent>().size();
     base::log::info("Editor initialized with {} entities", entity_count);
 }
 
 void EditorLayer::on_detach() {
     release_camera();
+    mesh_cache_.reset();
+    renderer_.reset();
     imgui_.reset();
 }
 
@@ -132,6 +136,7 @@ void EditorLayer::on_render() {
         auto& target = viewport_.target();
         vulcal::scene::SceneExtractor::Options options;
         options.camera_override_ = camera_.data(static_cast<float>(target.width()) / static_cast<float>(target.height()));
+        options.mesh_resolver_ = [this](const auto& path) { return mesh_cache_->load(path); };
         renderer_->render(extractor_.extract(context_.scene(), options), &target);
     }
     vulcal::gfx::RenderTarget::unbind();
