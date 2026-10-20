@@ -219,9 +219,8 @@ void EditorLayer::on_render() {
         vulcal::scene::SceneExtractor::Options options;
         options.camera_override_ = camera_.data(static_cast<float>(target.width()) / static_cast<float>(target.height()));
         options.default_material_ = default_material_;
-        options.mesh_resolver_ = [this](const auto& path) {
-            return mesh_cache_->load(context_.project()->resolve(path));
-        };
+        options.mesh_cache_ = mesh_cache_.get();
+        options.mesh_base_directory_ = context_.project()->root_directory();
         renderer_->render(extractor_.extract(context_.scene(), options), &target);
     }
     vulcal::gfx::RenderTarget::unbind();

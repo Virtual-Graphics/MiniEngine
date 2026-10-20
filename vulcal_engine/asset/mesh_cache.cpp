@@ -8,31 +8,20 @@ namespace vulcal::asset {
 namespace fs = std::filesystem;
 MeshCache::~MeshCache() { clear(); }
 
-render::MeshHandle MeshCache::insert(const fs::path& path, const MeshData& data) {
-    const auto key = fs::weakly_canonical(fs::absolute(path));
-    if (const auto it = meshes_.find(key); it != meshes_.end()) return it->second;
-    if (data.vertices_.empty() || data.indices_.empty()) return {};
-    const auto handle = renderer_.create_mesh(data);
-    meshes_.emplace(key, handle);
-    failures_.erase(key);
-    return handle;
-}
-
 render::MeshHandle MeshCache::load(const fs::path& path) {
-    fs::path key;
+    const auto key = fs::absolute(path).lexically_normal();
+    // Cache failures too: no per-frame loading or automatic retry before clear().
+    const auto [entry, inserted] = meshes_.try_emplace(key);
+    if (!inserted) return entry->second;
     try {
-        key = fs::weakly_canonical(fs::absolute(path));
-        if (const auto it = meshes_.find(key); it != meshes_.end()) return it->second;
-        std::error_code error;
-        const auto stamp = fs::last_write_time(key, error);
-        const auto previous = failures_.find(key);
-        if (previous != failures_.end() && previous->second == stamp) return {};
-        failures_[key] = stamp;
         auto extension = key.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (extension == ".obj") {
-            const auto handle = insert(key, OBJImporter::load_obj(key));
-            if (handle.value_) return handle;
+            const auto data = OBJImporter::load_obj(key);
+            if (!data.vertices_.empty() && !data.indices_.empty()) {
+                entry->second = renderer_.create_mesh(data);
+                return entry->second;
+            }
         }
         const auto utf8 = key.generic_u8string();
         base::log::warn("MeshCache: could not load mesh {}", std::string(utf8.begin(), utf8.end()));
@@ -43,8 +32,7 @@ render::MeshHandle MeshCache::load(const fs::path& path) {
 }
 
 void MeshCache::clear() {
-    for (const auto& [path, handle] : meshes_) renderer_.destroy_mesh(handle);
+    for (const auto& [path, handle] : meshes_) if (handle.value_) renderer_.destroy_mesh(handle);
     meshes_.clear();
-    failures_.clear();
 }
 } // namespace vulcal::asset

@@ -1,4 +1,3 @@
-#include "asset/obj_loader.h"
 #include "asset/mesh_cache.h"
 #include "common/imgui_integration.h"
 #include "engine/application.h"
@@ -25,13 +24,8 @@ public:
 
     void on_attach() override {
         const std::filesystem::path assets_dir = ASSETS_DIR;
-        const vulcal::MeshData mesh_data = vulcal::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj");
-        vertex_count_ = mesh_data.vertices_.size();
-        triangle_count_ = mesh_data.indices_.size() / 3;
-
         renderer_ = std::make_unique<vulcal::render::Renderer>();
         mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
-        mesh_cache_->insert(assets_dir / "StanfordBunny.obj", mesh_data);
 
         vulcal::render::Material material;
         material.diffuse_ = glm::vec3{ 0.9f };
@@ -49,13 +43,13 @@ public:
             { { -half, y, half }, { 0.0f, 1.0f, 0.0f } },
         };
         ground_data.indices_ = { 0, 1, 2, 2, 3, 0 };
-        mesh_cache_->insert(assets_dir / "procedural-ground", ground_data);
+        ground_mesh_ = renderer_->create_mesh(ground_data);
 
         vulcal::render::Material ground_material;
         ground_material.diffuse_ = glm::vec3{ 0.55f, 0.57f, 0.6f };
         ground_material.specular_ = glm::vec3{ 0.02f };
         ground_material.shininess_ = 4.0f;
-        const auto ground_material_handle = renderer_->create_material(ground_material);
+        ground_material_ = renderer_->create_material(ground_material);
 
         scene_ = std::make_unique<vulcal::scene::Scene>();
 
@@ -66,11 +60,6 @@ public:
         auto& bunny_renderer = bunny_entity_.add_component<vulcal::scene::MeshRendererComponent>();
         bunny_renderer.mesh_ = assets_dir / "StanfordBunny.obj";
         bunny_renderer.material_ = material_handle;
-
-        auto ground_entity = scene_->create_entity("Ground");
-        auto& ground_renderer = ground_entity.add_component<vulcal::scene::MeshRendererComponent>();
-        ground_renderer.mesh_ = assets_dir / "procedural-ground";
-        ground_renderer.material_ = ground_material_handle;
 
         environment_entity_ = scene_->create_entity("Environment");
         auto& environment = environment_entity_.add_component<vulcal::scene::EnvironmentComponent>();
@@ -122,12 +111,19 @@ public:
         update_camera_aspect();
     }
 
-    void on_detach() override { imgui_.reset(); }
+    void on_detach() override {
+        imgui_.reset();
+        renderer_->destroy_mesh(ground_mesh_);
+        mesh_cache_.reset();
+        renderer_.reset();
+    }
 
     void on_render() override {
         vulcal::scene::SceneExtractor::Options options;
-        options.mesh_resolver_ = [this](const auto& path) { return mesh_cache_->load(path); };
-        renderer_->render(extractor_.extract(*scene_, options));
+        options.mesh_cache_ = mesh_cache_.get();
+        auto data = extractor_.extract(*scene_, options);
+        data.items_.push_back({ ground_mesh_, ground_material_, glm::mat4{ 1.0f } });
+        renderer_->render(data);
         imgui_->render();
     }
 
@@ -140,7 +136,6 @@ private:
             ImGui::Text("%.1f FPS | %.2f ms/frame", fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
             ImGui::TextDisabled("Whole-frame interval, including VSync");
             ImGui::Text("Model: Stanford Bunny");
-            ImGui::Text("Vertices: %zu | Triangles: %zu", vertex_count_, triangle_count_);
 
             ImGui::SeparatorText("Model");
             ImGui::Checkbox("Auto rotate", &rotate_model_);
@@ -203,8 +198,8 @@ private:
     vulcal::scene::Entity environment_entity_;
     vulcal::scene::SceneExtractor extractor_;
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
-    std::size_t vertex_count_ = 0;
-    std::size_t triangle_count_ = 0;
+    vulcal::render::MeshHandle ground_mesh_;
+    vulcal::render::MaterialHandle ground_material_;
     bool rotate_model_ = true;
     float angle_ = 0.0f;
     float rotate_speed_ = 60.0f;

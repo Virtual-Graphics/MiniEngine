@@ -27,6 +27,7 @@ struct TransformComponent {
 };
 
 struct MeshRendererComponent {
+    // Temporary resource references; replace with Asset Pipeline references later.
     std::filesystem::path mesh_;
     // Optional transient override. The editor supplies a shared default material.
     render::MaterialHandle material_;

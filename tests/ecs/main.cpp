@@ -345,15 +345,8 @@ TEST_F(SceneExtractorTest, UsesPrimaryCamera) {
     EXPECT_NEAR(data.camera_.projection_[0][0], expected_projection_00, 1e-4f);
 }
 
-TEST_F(SceneExtractorTest, SkipsInvisibleRenderers) {
-    vulcal::scene::SceneExtractor::Options options;
-    options.mesh_resolver_ = [](const auto& path) { EXPECT_EQ(path, "assets/visible.obj"); return vulcal::render::MeshHandle{ 11 }; };
-    const auto data = extractor_.extract(scene_, options);
-
-    ASSERT_EQ(data.items_.size(), static_cast<std::size_t>(1));
-    EXPECT_EQ(data.items_[0].mesh_.value_, 11ull);
-    EXPECT_EQ(data.items_[0].material_.value_, 22ull);
-    expect_near(glm::vec3{ data.items_[0].world_transform_[3] }, glm::vec3{ 1.0f, 2.0f, 3.0f });
+TEST_F(SceneExtractorTest, SkipsMeshesWithoutCache) {
+    EXPECT_TRUE(extractor_.extract(scene_).items_.empty());
 }
 
 TEST_F(SceneExtractorTest, ExtractsEnvironment) {
@@ -433,30 +426,6 @@ TEST(SceneLight, DirectionUsesRotationWithoutTranslationOrScale) {
     const auto data = vulcal::scene::SceneExtractor{}.extract(scene, options);
     ASSERT_TRUE(data.directional_light_);
     expect_near(data.directional_light_->direction_, { -1.0f, 0.0f, 0.0f });
-}
-
-TEST(SceneExtractor, SkipsRenderersUntilBothResourcesAreAssigned) {
-    vulcal::scene::Scene scene;
-    auto entity = scene.create_entity();
-    auto& mesh = entity.add_component<vulcal::scene::MeshRendererComponent>();
-    vulcal::scene::SceneExtractor::Options options;
-    options.camera_override_ = vulcal::render::CameraData{};
-    vulcal::scene::SceneExtractor extractor;
-    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
-    mesh.mesh_ = "assets/mesh.obj";
-    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
-    mesh.mesh_.clear();
-    mesh.material_ = vulcal::render::MaterialHandle{ 2 };
-    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
-    mesh.mesh_ = "assets/mesh.obj";
-    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
-    options.mesh_resolver_ = [](const auto&) { return vulcal::render::MeshHandle{ 1 }; };
-    EXPECT_EQ(extractor.extract(scene, options).items_.size(), 1u);
-    mesh.material_ = {};
-    options.default_material_ = vulcal::render::MaterialHandle{ 5 };
-    EXPECT_EQ(extractor.extract(scene, options).items_.front().material_.value_, 5u);
-    options.mesh_resolver_ = [](const auto&) { return vulcal::render::MeshHandle{}; };
-    EXPECT_TRUE(extractor.extract(scene, options).items_.empty());
 }
 
 } // namespace
