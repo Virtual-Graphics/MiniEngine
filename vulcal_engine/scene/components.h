@@ -4,6 +4,7 @@
 #include "render/resources/resources_handle.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <string>
 
@@ -26,7 +27,9 @@ struct TransformComponent {
 };
 
 struct MeshRendererComponent {
-    render::MeshHandle mesh_;
+    // Temporary resource references; replace with Asset Pipeline references later.
+    std::filesystem::path mesh_;
+    // Optional transient override. The editor supplies a shared default material.
     render::MaterialHandle material_;
     bool visible_ = true;
 };

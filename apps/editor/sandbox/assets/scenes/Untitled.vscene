@@ -1,0 +1,57 @@
+format_version: 1
+entities:
+  - id: 3253000336927422207
+    name: Entity
+    transform:
+      translation: [0, 0.449999988, 0]
+      rotation: [0, 0, 0]
+      scale: [4.57000017, 4.0999999, 4.48000002]
+    mesh_renderer:
+      mesh: assets/StanfordBunny.obj
+      visible: true
+  - id: 9433580224979648958
+    name: Entity
+    transform:
+      translation: [0, 0, 0]
+      rotation: [0, 0, 0]
+      scale: [1, 1, 1]
+    environment:
+      ambient_color: [0.313725501, 0.101960786, 0.101960786]
+      clear_color: [0.0637254715, 0.058415018, 0.058415018, 1]
+  - id: 3303269796770541797
+    name: Camera
+    transform:
+      translation: [0, 4.00000048, 8.00000095]
+      rotation: [-0.463647664, 0, 0]
+      scale: [1, 1, 1]
+    camera:
+      projection: perspective
+      primary: true
+      perspective_fov_y: 0.785398185
+      perspective_aspect: 1
+      perspective_near: 0.100000001
+      perspective_far: 100
+      orthographic_left: -1
+      orthographic_right: 1
+      orthographic_bottom: -1
+      orthographic_top: 1
+      orthographic_near: 0.100000001
+      orthographic_far: 100
+  - id: 3533932168528184193
+    name: Sun
+    transform:
+      translation: [0, 0, 0]
+      rotation: [-0.615479648, 0.785398066, 2.10734239e-08]
+      scale: [1, 1, 1]
+    light:
+      type: directional
+      color: [1, 1, 1]
+      intensity: 1
+      shadow_enabled: true
+      shadow_map_size: 2048
+      shadow_center: [0, 0, 0]
+      shadow_extent: 10
+      shadow_near: 0.100000001
+      shadow_far: 50
+      shadow_depth_bias: 0.00150000001
+      shadow_normal_bias: 0.0199999996

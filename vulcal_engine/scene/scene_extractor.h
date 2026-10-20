@@ -6,6 +6,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <optional>
 
+namespace vulcal::asset { class MeshCache; }
+
 namespace vulcal::scene {
 
 class Scene;
@@ -17,6 +19,10 @@ public:
     struct Options {
         CameraPolicy camera_policy_ = CameraPolicy::Primary;
         std::optional<render::CameraData> camera_override_;
+        // Temporary path loading until Asset Pipeline owns resource resolution.
+        asset::MeshCache* mesh_cache_ = nullptr;
+        std::filesystem::path mesh_base_directory_;
+        render::MaterialHandle default_material_;
     };
 
     render::RenderData extract(const Scene& scene) const;

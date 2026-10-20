@@ -1,4 +1,4 @@
-#include "asset/obj_loader.h"
+#include "asset/mesh_cache.h"
 #include "common/imgui_integration.h"
 #include "engine/application.h"
 #include "engine/layer.h"
@@ -9,27 +9,25 @@
 #include "scene/scene_extractor.h"
 
 #include <cmath>
-#include <cstddef>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
 #include <memory>
+#include <iostream>
+#include <stdexcept>
+#include <utility>
 
 class ModelViewerLayer : public engine::Layer {
 public:
-    ModelViewerLayer()
-            : engine::Layer("ModelViewerLayer") {}
+    explicit ModelViewerLayer(std::filesystem::path model_path)
+            : engine::Layer("ModelViewerLayer"), model_path_(std::move(model_path)) {}
 
     void on_attach() override {
-        const std::filesystem::path assets_dir = ASSETS_DIR;
-        const vulcal::MeshData mesh_data = vulcal::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj");
-        vertex_count_ = mesh_data.vertices_.size();
-        triangle_count_ = mesh_data.indices_.size() / 3;
-
         renderer_ = std::make_unique<vulcal::render::Renderer>();
-        const auto mesh = renderer_->create_mesh(mesh_data);
+        mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
+        if (!mesh_cache_->load(model_path_).value_) throw std::runtime_error("Could not load the requested OBJ mesh");
 
         vulcal::render::Material material;
         material.diffuse_ = glm::vec3{ 0.9f };
@@ -47,28 +45,23 @@ public:
             { { -half, y, half }, { 0.0f, 1.0f, 0.0f } },
         };
         ground_data.indices_ = { 0, 1, 2, 2, 3, 0 };
-        const auto ground_mesh = renderer_->create_mesh(ground_data);
+        ground_mesh_ = renderer_->create_mesh(ground_data);
 
         vulcal::render::Material ground_material;
         ground_material.diffuse_ = glm::vec3{ 0.55f, 0.57f, 0.6f };
         ground_material.specular_ = glm::vec3{ 0.02f };
         ground_material.shininess_ = 4.0f;
-        const auto ground_material_handle = renderer_->create_material(ground_material);
+        ground_material_ = renderer_->create_material(ground_material);
 
         scene_ = std::make_unique<vulcal::scene::Scene>();
 
-        bunny_entity_ = scene_->create_entity("Bunny");
-        auto& bunny_transform = bunny_entity_.get_component<vulcal::scene::TransformComponent>();
-        bunny_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
-        bunny_transform.scale_ = glm::vec3{ 15.0f };
-        auto& bunny_renderer = bunny_entity_.add_component<vulcal::scene::MeshRendererComponent>();
-        bunny_renderer.mesh_ = mesh;
-        bunny_renderer.material_ = material_handle;
-
-        auto ground_entity = scene_->create_entity("Ground");
-        auto& ground_renderer = ground_entity.add_component<vulcal::scene::MeshRendererComponent>();
-        ground_renderer.mesh_ = ground_mesh;
-        ground_renderer.material_ = ground_material_handle;
+        model_entity_ = scene_->create_entity("Model");
+        auto& model_transform = model_entity_.get_component<vulcal::scene::TransformComponent>();
+        model_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
+        model_transform.scale_ = glm::vec3{ 15.0f };
+        auto& model_renderer = model_entity_.add_component<vulcal::scene::MeshRendererComponent>();
+        model_renderer.mesh_ = model_path_;
+        model_renderer.material_ = material_handle;
 
         environment_entity_ = scene_->create_entity("Environment");
         auto& environment = environment_entity_.add_component<vulcal::scene::EnvironmentComponent>();
@@ -114,16 +107,25 @@ public:
             angle_ = std::fmod(angle_ + dt.get_seconds() * rotate_speed_, 360.0f);
         }
 
-        auto& bunny_transform = bunny_entity_.get_component<vulcal::scene::TransformComponent>();
-        bunny_transform.rotation_.y = glm::radians(angle_);
+        auto& model_transform = model_entity_.get_component<vulcal::scene::TransformComponent>();
+        model_transform.rotation_.y = glm::radians(angle_);
 
         update_camera_aspect();
     }
 
-    void on_detach() override { imgui_.reset(); }
+    void on_detach() override {
+        imgui_.reset();
+        renderer_->destroy_mesh(ground_mesh_);
+        mesh_cache_.reset();
+        renderer_.reset();
+    }
 
     void on_render() override {
-        renderer_->render(extractor_.extract(*scene_));
+        vulcal::scene::SceneExtractor::Options options;
+        options.mesh_cache_ = mesh_cache_.get();
+        auto data = extractor_.extract(*scene_, options);
+        data.items_.push_back({ ground_mesh_, ground_material_, glm::mat4{ 1.0f } });
+        renderer_->render(data);
         imgui_->render();
     }
 
@@ -135,8 +137,8 @@ private:
             const float fps = ImGui::GetIO().Framerate;
             ImGui::Text("%.1f FPS | %.2f ms/frame", fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
             ImGui::TextDisabled("Whole-frame interval, including VSync");
-            ImGui::Text("Model: Stanford Bunny");
-            ImGui::Text("Vertices: %zu | Triangles: %zu", vertex_count_, triangle_count_);
+            const auto filename = model_path_.filename().u8string();
+            ImGui::Text("Model: %s", reinterpret_cast<const char*>(filename.c_str()));
 
             ImGui::SeparatorText("Model");
             ImGui::Checkbox("Auto rotate", &rotate_model_);
@@ -191,28 +193,43 @@ private:
     }
 
     std::unique_ptr<vulcal::render::Renderer> renderer_;
+    std::unique_ptr<vulcal::asset::MeshCache> mesh_cache_;
     std::unique_ptr<vulcal::scene::Scene> scene_;
-    vulcal::scene::Entity bunny_entity_;
+    vulcal::scene::Entity model_entity_;
     vulcal::scene::Entity camera_entity_;
     vulcal::scene::Entity light_entity_;
     vulcal::scene::Entity environment_entity_;
     vulcal::scene::SceneExtractor extractor_;
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
-    std::size_t vertex_count_ = 0;
-    std::size_t triangle_count_ = 0;
+    std::filesystem::path model_path_;
+    vulcal::render::MeshHandle ground_mesh_;
+    vulcal::render::MaterialHandle ground_material_;
     bool rotate_model_ = true;
     float angle_ = 0.0f;
     float rotate_speed_ = 60.0f;
 };
 
-int main() {
-    engine::ApplicationCreateInfo info;
-    info.width = 1280;
-    info.height = 720;
-    info.title = "VulcalEngine - Model Viewer";
+#ifdef _WIN32
+int wmain(int argc, wchar_t* argv[]) {
+#else
+int main(int argc, char* argv[]) {
+#endif
+    if (argc != 2) {
+        std::cerr << "Usage: model_viewer <path-to-model.obj>\n";
+        return 1;
+    }
+    try {
+        engine::ApplicationCreateInfo info;
+        info.width = 1280;
+        info.height = 720;
+        info.title = "VulcalEngine - Model Viewer";
 
-    engine::Application app(info);
-    app.push_layer(std::make_unique<ModelViewerLayer>());
-    app.run();
+        engine::Application app(info);
+        app.push_layer(std::make_unique<ModelViewerLayer>(std::filesystem::absolute(argv[1]).lexically_normal()));
+        app.run();
+    } catch (const std::exception& error) {
+        std::cerr << "Model Viewer: " << error.what() << '\n';
+        return 1;
+    }
     return 0;
 }

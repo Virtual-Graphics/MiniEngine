@@ -9,7 +9,7 @@ namespace editor {
 
 class ViewportPanel {
 public:
-    void draw(bool& open, float camera_speed, const vulcal::gfx::Context::Limits& limits);
+    void draw(bool& open, float camera_speed, const vulcal::gfx::Context::Limits& limits, bool has_scene = true);
     bool visible() const { return visible_; }
     bool focused() const { return focused_; }
     bool camera_requested() const { return camera_requested_; }

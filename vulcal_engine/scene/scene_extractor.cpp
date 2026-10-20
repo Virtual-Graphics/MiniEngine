@@ -1,6 +1,7 @@
 #include "scene/scene_extractor.h"
 
 #include "base/logger.h"
+#include "asset/mesh_cache.h"
 #include "scene/components.h"
 #include "scene/scene.h"
 
@@ -73,11 +74,12 @@ render::RenderData SceneExtractor::extract(const Scene& scene, const Options& op
     for (const auto entity: render_view) {
         const auto& transform = render_view.get<const TransformComponent>(entity);
         const auto& renderer = render_view.get<const MeshRendererComponent>(entity);
-        if (!renderer.visible_ || renderer.mesh_.value_ == 0 || renderer.material_.value_ == 0) {
+        const auto material = renderer.material_.value_ ? renderer.material_ : options.default_material_;
+        if (!renderer.visible_ || renderer.mesh_.empty() || material.value_ == 0 || !options.mesh_cache_) {
             continue;
         }
-
-        data.items_.push_back(render::RenderItem{ renderer.mesh_, renderer.material_, transform.matrix() });
+        const auto mesh = options.mesh_cache_->load(options.mesh_base_directory_ / renderer.mesh_);
+        if (mesh.value_ != 0) data.items_.push_back(render::RenderItem{ mesh, material, transform.matrix() });
     }
 
     return data;

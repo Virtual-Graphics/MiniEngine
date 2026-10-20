@@ -1,6 +1,6 @@
 #include "editor/panels/inspector_panel.h"
 
-#include "editor/editor_context.h"
+#include "editor/app/editor_context.h"
 
 #include <algorithm>
 #include <cmath>
@@ -138,12 +138,12 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
             }
             if (entity.has_component<vulcal::scene::TransformComponent>())
                 draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
-            draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [](auto& mesh) {
+            draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [&](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
-                ImGui::Text("Mesh: %llu", static_cast<unsigned long long>(mesh.mesh_.value_));
-                ImGui::Text("Material: %llu", static_cast<unsigned long long>(mesh.material_.value_));
-                if (mesh.mesh_.value_ == 0 || mesh.material_.value_ == 0)
-                    ImGui::TextDisabled("Not rendered: mesh and material must both be assigned.");
+                auto path = path_to_utf8(mesh.mesh_);
+                if (ImGui::InputText("Mesh path", &path, ImGuiInputTextFlags_EnterReturnsTrue)) mesh.mesh_ = path_from_utf8(path);
+                ImGui::TextDisabled("Project-relative OBJ path; press Enter to apply (empty to clear).");
+                ImGui::TextDisabled("Uses the shared default material.");
             });
             draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);
             draw_component<vulcal::scene::LightComponent>(entity, "Light", draw_light);

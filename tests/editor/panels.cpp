@@ -1,4 +1,4 @@
-#include "editor/editor_context.h"
+#include "editor/app/editor_context.h"
 #include "editor/panels/hierarchy_panel.h"
 #include "editor/panels/inspector_panel.h"
 
@@ -11,6 +11,7 @@ namespace {
 class EditorPanels : public ::testing::Test {
 protected:
     void SetUp() override {
+        context_.set_scene(std::make_unique<vulcal::scene::Scene>());
         ImGui::CreateContext();
         auto& io = ImGui::GetIO();
         io.IniFilename = nullptr;
@@ -70,6 +71,16 @@ protected:
     editor::InspectorPanel inspector_;
     bool open_ = true;
 };
+
+TEST_F(EditorPanels, EmptyEditorHasNoEntityActions) {
+    editor::EditorContext empty;
+    ImGui::NewFrame();
+    EXPECT_NO_THROW(hierarchy_.draw(empty, open_));
+    EXPECT_NO_THROW(inspector_.draw(empty, open_));
+    ImGui::Render();
+    EXPECT_FALSE(empty.has_scene());
+    EXPECT_FALSE(empty.selected_entity());
+}
 
 TEST_F(EditorPanels, LeftClickSelectsEntityAndBlankClickClearsSelection) {
     auto entity = context_.scene().create_entity("Entity");
@@ -131,6 +142,33 @@ TEST_F(EditorPanels, InspectorEditsNameThroughTextInput) {
     io.AddInputCharactersUTF8("Renamed entity");
     frame();
     EXPECT_EQ(entity.get_component<vulcal::scene::TagComponent>().name_, "Renamed entity");
+}
+
+TEST_F(EditorPanels, InspectorAppliesMeshPathOnEnter) {
+    auto entity = context_.create_entity();
+    auto& mesh = entity.add_component<vulcal::scene::MeshRendererComponent>();
+    mesh.mesh_ = "assets/old.obj";
+    frame();
+    frame();
+    const auto start = ImGui::FindWindowByName("Inspector")->DC.CursorStartPos;
+    // Name, UUID, Transform and Mesh Renderer fields precede the path input.
+    const float y = start.y + ImGui::GetFrameHeightWithSpacing() * 7.0f + ImGui::GetTextLineHeightWithSpacing();
+    click({ start.x + 40.0f, y + ImGui::GetFrameHeight() * 0.5f });
+    auto& io = ImGui::GetIO();
+    io.AddKeyEvent(ImGuiMod_Ctrl, true);
+    io.AddKeyEvent(ImGuiKey_A, true);
+    frame();
+    io.AddKeyEvent(ImGuiKey_A, false);
+    io.AddKeyEvent(ImGuiMod_Ctrl, false);
+    const std::string path = "assets/\xe6\xa8\xa1\xe5\x9e\x8b.obj";
+    io.AddInputCharactersUTF8(path.c_str());
+    frame();
+    EXPECT_EQ(mesh.mesh_, "assets/old.obj");
+    io.AddKeyEvent(ImGuiKey_Enter, true);
+    frame();
+    io.AddKeyEvent(ImGuiKey_Enter, false);
+    frame();
+    EXPECT_EQ(editor::path_to_utf8(mesh.mesh_), path);
 }
 
 TEST_F(EditorPanels, InspectorPreventsSingularScaleFromNumericInput) {
