@@ -1,0 +1,6 @@
+format_version: 1
+project:
+  name: sandbox
+  author: Artichoke
+  asset_directory: assets
+  last_scene: assets/scenes/Untitled.vscene
