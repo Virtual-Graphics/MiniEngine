@@ -1,15 +1,15 @@
 #pragma once
 
-#include "editor/editor_camera.h"
-#include "editor/editor_context.h"
+#include "editor/scene/editor_camera.h"
+#include "editor/app/editor_context.h"
 #include "editor/panels/hierarchy_panel.h"
 #include "editor/panels/inspector_panel.h"
 #include "editor/panels/viewport_panel.h"
 #include "engine/layer.h"
 #include "scene/scene_extractor.h"
-#include "editor/dialog.h"
-#include "editor/new_project_dialog.h"
-#include "editor/project_session.h"
+#include "editor/dialogs/dialog.h"
+#include "editor/dialogs/new_project_dialog.h"
+#include "editor/project/project_session.h"
 
 #include <memory>
 

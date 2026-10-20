@@ -1,5 +1,5 @@
-#include "editor/project_serializer.h"
-#include "editor/yaml_io.h"
+#include "editor/serialization/project_serializer.h"
+#include "editor/serialization/yaml_io.h"
 
 #include <algorithm>
 #include <cctype>

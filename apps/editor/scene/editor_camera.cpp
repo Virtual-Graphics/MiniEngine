@@ -1,4 +1,4 @@
-#include "editor/editor_camera.h"
+#include "editor/scene/editor_camera.h"
 #include "base/input.h"
 
 #include <algorithm>

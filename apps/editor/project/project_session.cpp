@@ -1,7 +1,7 @@
-#include "editor/project_session.h"
-#include "editor/default_scene.h"
-#include "editor/project_serializer.h"
-#include "editor/scene_serializer.h"
+#include "editor/project/project_session.h"
+#include "editor/scene/default_scene.h"
+#include "editor/serialization/project_serializer.h"
+#include "editor/serialization/scene_serializer.h"
 
 namespace editor {
 namespace fs = std::filesystem;

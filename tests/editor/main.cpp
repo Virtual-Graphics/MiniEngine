@@ -1,5 +1,5 @@
-#include "editor/editor_camera.h"
-#include "editor/editor_context.h"
+#include "editor/scene/editor_camera.h"
+#include "editor/app/editor_context.h"
 
 #include <cmath>
 #include <gtest/gtest.h>

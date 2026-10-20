@@ -1,4 +1,4 @@
-#include "editor/dialog.h"
+#include "editor/dialogs/dialog.h"
 #include <imgui.h>
 
 namespace editor {

@@ -1,6 +1,6 @@
-#include "editor/new_project_dialog.h"
-#include "editor/native_file_dialog.h"
-#include "editor/project.h"
+#include "editor/dialogs/new_project_dialog.h"
+#include "editor/dialogs/native_file_dialog.h"
+#include "editor/project/project.h"
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 

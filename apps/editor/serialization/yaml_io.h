@@ -1,6 +1,6 @@
 #pragma once
 
-#include "editor/project.h"
+#include "editor/project/project.h"
 #include "base/uuid.h"
 #include <fstream>
 #include <stdexcept>

@@ -1,5 +1,5 @@
 #pragma once
-#include "editor/dialog.h"
+#include "editor/dialogs/dialog.h"
 #include <filesystem>
 #include <functional>
 

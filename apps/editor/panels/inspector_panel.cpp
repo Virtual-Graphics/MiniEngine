@@ -1,6 +1,6 @@
 #include "editor/panels/inspector_panel.h"
 
-#include "editor/editor_context.h"
+#include "editor/app/editor_context.h"
 
 #include <algorithm>
 #include <cmath>

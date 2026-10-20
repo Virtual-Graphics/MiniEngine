@@ -1,9 +1,9 @@
-#include "editor/editor_layer.h"
+#include "editor/app/editor_layer.h"
 
 #include "base/input.h"
 #include "base/logger.h"
 #include "common/imgui_integration.h"
-#include "editor/native_file_dialog.h"
+#include "editor/dialogs/native_file_dialog.h"
 #include "asset/mesh_cache.h"
 #include "engine/application.h"
 #include "gfx/command.h"

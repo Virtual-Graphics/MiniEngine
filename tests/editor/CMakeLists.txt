@@ -1,7 +1,7 @@
 add_executable(editor_state_test
     main.cpp
-    ../../apps/editor/editor_context.cpp
-    ../../apps/editor/editor_camera.cpp
+    ../../apps/editor/app/editor_context.cpp
+    ../../apps/editor/scene/editor_camera.cpp
 )
 target_include_directories(editor_state_test PRIVATE ../../apps)
 target_link_libraries(editor_state_test PRIVATE vulcal_engine GTest::gtest_main)

@@ -1,5 +1,5 @@
 #pragma once
-#include "editor/project.h"
+#include "editor/project/project.h"
 
 namespace editor {
 class ProjectSerializer {

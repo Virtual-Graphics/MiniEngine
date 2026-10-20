@@ -1,7 +1,7 @@
 #pragma once
 
 #include "scene/scene.h"
-#include "editor/project.h"
+#include "editor/project/project.h"
 
 #include <memory>
 #include <optional>

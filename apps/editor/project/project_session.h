@@ -1,5 +1,5 @@
 #pragma once
-#include "editor/editor_context.h"
+#include "editor/app/editor_context.h"
 
 namespace editor {
 // Parsing and disk writes finish before editor state changes.

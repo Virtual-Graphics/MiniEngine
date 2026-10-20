@@ -1,7 +1,7 @@
-#include "editor/editor_context.h"
-#include "editor/project_serializer.h"
-#include "editor/project_session.h"
-#include "editor/scene_serializer.h"
+#include "editor/app/editor_context.h"
+#include "editor/serialization/project_serializer.h"
+#include "editor/project/project_session.h"
+#include "editor/serialization/scene_serializer.h"
 #include "asset/obj_loader.h"
 
 #include <filesystem>

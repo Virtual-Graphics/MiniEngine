@@ -1,5 +1,5 @@
-#include "editor/scene_serializer.h"
-#include "editor/yaml_io.h"
+#include "editor/serialization/scene_serializer.h"
+#include "editor/serialization/yaml_io.h"
 #include "scene/scene.h"
 
 #include <cmath>
