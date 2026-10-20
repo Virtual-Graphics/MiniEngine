@@ -33,14 +33,6 @@ void EditorLayer::on_attach() {
     mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
     default_material_ = renderer_->create_material(vulcal::render::Material{});
     file_dialogs_ = std::make_unique<NativeFileDialog>();
-    inspector_.pick_mesh = [this](auto entity) {
-        run_operation([&] {
-            const auto& project = *context_.project();
-            if (auto path = NativeFileDialog::open("OBJ Mesh", "obj", project.resolve(project.asset_directory_))) {
-                entity.template get_component<vulcal::scene::MeshRendererComponent>().mesh_ = project.relative_asset_path(*path);
-            }
-        });
-    };
     base::log::info("Editor initialized without a project");
 }
 

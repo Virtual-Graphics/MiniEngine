@@ -140,12 +140,9 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
                 draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
             draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [&](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
-                ImGui::TextWrapped("Mesh: %s", mesh.mesh_.empty() ? "None" : path_to_utf8(mesh.mesh_).c_str());
-                ImGui::BeginDisabled(!context.project() || !pick_mesh);
-                if (ImGui::Button("Choose mesh...")) pick_mesh(entity);
-                ImGui::EndDisabled();
-                ImGui::SameLine();
-                if (ImGui::Button("Clear")) mesh.mesh_.clear();
+                auto path = path_to_utf8(mesh.mesh_);
+                if (ImGui::InputText("Mesh path", &path, ImGuiInputTextFlags_EnterReturnsTrue)) mesh.mesh_ = path_from_utf8(path);
+                ImGui::TextDisabled("Project-relative OBJ path; press Enter to apply (empty to clear).");
                 ImGui::TextDisabled("Uses the shared default material.");
             });
             draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);

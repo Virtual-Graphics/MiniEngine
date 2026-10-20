@@ -15,4 +15,9 @@
 Editor 启动时不自动打开项目。手动验证时选择 `sandbox/sandbox.vproj`，
 即可恢复其中保存的场景。项目和场景中的资源路径均相对于 `.vproj` 所在目录。
 
+Mesh Renderer 暂用 Inspector 的 `Mesh path` 文本框填写 OBJ 相对路径（如
+`assets/StanfordBunny.obj`），按 Enter 应用，留空后按 Enter 清除。保存场景时仍会
+校验资源路径位于项目的 Asset 目录。此输入和 OBJ 缓存都是 Asset Pipeline 出现前的脚手架；
+缓存不自动重试失败的文件，重新打开项目会清空缓存。
+
 序列化和对话框依赖只属于 Editor；关闭 `BUILD_APPS` 后，Core 仍可独立构建。
