@@ -1,8 +1,11 @@
+#include "asset/material_bin.h"
+#include "asset/mesh_bin.h"
+#include "common/asset/asset_database.h"
+#include "common/asset/obj_loader.h"
 #include "editor/app/editor_context.h"
-#include "editor/serialization/project_serializer.h"
 #include "editor/project/project_session.h"
+#include "editor/serialization/project_serializer.h"
 #include "editor/serialization/scene_serializer.h"
-#include "asset/obj_loader.h"
 
 #include <filesystem>
 #include <fstream>
@@ -63,7 +66,11 @@ TEST_F(Persistence, SceneSaveOpenAndProjectRelocationPreserveRelativeReferences)
     session_.create_project(root_, "Demo", "", "content");
     auto entity = context_.create_entity();
     entity.get_component<TagComponent>().name_ = "Mesh";
-    entity.add_component<MeshRendererComponent>().mesh_ = "content/models/bunny.obj";
+    const auto mesh_id = vulcal::asset::MeshID{ base::UUID::generate() };
+    const auto material_id = vulcal::asset::MaterialID{ base::UUID::generate() };
+    auto& renderer = entity.add_component<MeshRendererComponent>();
+    renderer.mesh_ = mesh_id;
+    renderer.material_ = material_id;
     const auto id = entity.get_component<IDComponent>().id_;
     session_.save_scene(root_ / "content/scenes/main.vscene");
     EXPECT_EQ(context_.project()->last_scene_, "content/scenes/main.vscene");
@@ -76,8 +83,8 @@ TEST_F(Persistence, SceneSaveOpenAndProjectRelocationPreserveRelativeReferences)
     bool found = false;
     context_.scene().each<IDComponent, MeshRendererComponent>([&](auto, const auto& identity, const auto& mesh) {
         EXPECT_EQ(identity.id_, id);
-        EXPECT_EQ(mesh.mesh_, "content/models/bunny.obj");
-        EXPECT_EQ(mesh.material_.value_, 0u);
+        EXPECT_EQ(mesh.mesh_, mesh_id);
+        EXPECT_EQ(mesh.material_, material_id);
         found = true;
     });
     EXPECT_TRUE(found);
@@ -104,7 +111,7 @@ TEST_F(Persistence, FailedOpenAndSavePreserveScenePathAndSelection) {
     EXPECT_EQ(editor::ProjectSerializer::load(root_ / "Demo.vproj").last_scene_, "assets/scenes/main.vscene");
 }
 
-TEST_F(Persistence, RoundTripsEveryComponentFieldWithoutTransientMaterial) {
+TEST_F(Persistence, RoundTripsEveryComponentField) {
     Scene scene;
     auto entity = scene.create_entity("All fields: 测试");
     entity.get_component<IDComponent>().id_ = base::UUID{ 0xfedcba9876543210ull };
@@ -113,8 +120,8 @@ TEST_F(Persistence, RoundTripsEveryComponentFieldWithoutTransientMaterial) {
     transform.rotation_ = { 0.1f, 0.2f, 0.3f };
     transform.scale_ = { 2, 3, 4 };
     auto& mesh = entity.add_component<MeshRendererComponent>();
-    mesh.mesh_ = "assets/models/bunny.obj";
-    mesh.material_ = vulcal::render::MaterialHandle{ 123 };
+    mesh.mesh_ = vulcal::asset::MeshID{ base::UUID{ 0x0123456789abcdefull } };
+    mesh.material_ = vulcal::asset::MaterialID{ base::UUID{ 0x1111222233334444ull } };
     mesh.visible_ = false;
     auto& camera = entity.add_component<CameraComponent>();
     camera.projection_type_ = CameraComponent::ProjectionType::Orthographic;
@@ -155,7 +162,7 @@ TEST_F(Persistence, RoundTripsEveryComponentFieldWithoutTransientMaterial) {
     EXPECT_EQ(copy.get_component<TransformComponent>().scale_, transform.scale_);
     EXPECT_EQ(copy.get_component<MeshRendererComponent>().mesh_, mesh.mesh_);
     EXPECT_FALSE(copy.get_component<MeshRendererComponent>().visible_);
-    EXPECT_EQ(copy.get_component<MeshRendererComponent>().material_.value_, 0u);
+    EXPECT_EQ(copy.get_component<MeshRendererComponent>().material_, mesh.material_);
     const auto& c = copy.get_component<CameraComponent>();
     EXPECT_EQ(c.projection_type_, camera.projection_type_);
     EXPECT_EQ(c.primary_, camera.primary_);
@@ -189,9 +196,13 @@ TEST_F(Persistence, RejectsMalformedScenesAndDuplicateIds) {
     const auto path = root_ / "bad.vscene";
     std::ofstream(path) << "format_version: 1\nentities: broken\n";
     EXPECT_THROW(editor::SceneSerializer::load(path), std::exception);
-    std::ofstream(path) << "format_version: 1\nentities:\n"
-        "  - {id: 1, name: First, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}}\n"
-        "  - {id: 1, name: Second, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}}\n";
+    std::ofstream(path) << "format_version: 2\nentities:\n"
+                           "  - {id: 1, name: First, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}}\n"
+                           "  - {id: 1, name: Second, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}}\n";
+    EXPECT_THROW(editor::SceneSerializer::load(path), std::exception);
+    std::ofstream(path) << "format_version: 2\nentities:\n"
+                           "  - {id: 1, name: Bad, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]},"
+                           " mesh_renderer: {mesh: not-an-id, material: '', visible: true}}\n";
     EXPECT_THROW(editor::SceneSerializer::load(path), std::exception);
 }
 
@@ -203,12 +214,10 @@ TEST_F(Persistence, InvalidProjectionAndShadowSettingsPreserveActiveScene) {
     std::ifstream input(current);
     const std::string original{ std::istreambuf_iterator<char>{ input }, {} };
     const auto invalid = root_ / "assets/invalid.vscene";
-    for (const auto& [key, value] : {
-            std::pair{ "shadow_map_size", "0" }, { "shadow_map_size", "4294967295" }, { "shadow_map_size", "513" },
-            { "shadow_extent", "0" }, { "shadow_near", "-1" }, { "shadow_far", "0.1" },
-            { "perspective_fov_y", "0" }, { "perspective_fov_y", "3.1415928" }, { "perspective_aspect", "0" },
-            { "perspective_near", "0" }, { "perspective_far", "0.1" },
-            { "orthographic_right", "-1" }, { "orthographic_top", "-1" }, { "orthographic_far", "0.1" } }) {
+    for (const auto& [key, value]: { std::pair{ "shadow_map_size", "0" }, { "shadow_map_size", "4294967295" }, { "shadow_map_size", "513" },
+             { "shadow_extent", "0" }, { "shadow_near", "-1" }, { "shadow_far", "0.1" }, { "perspective_fov_y", "0" },
+             { "perspective_fov_y", "3.1415928" }, { "perspective_aspect", "0" }, { "perspective_near", "0" }, { "perspective_far", "0.1" },
+             { "orthographic_right", "-1" }, { "orthographic_top", "-1" }, { "orthographic_far", "0.1" } }) {
         SCOPED_TRACE(std::string(key) + ": " + value);
         auto text = original;
         const std::string field = std::string(key) + ": ";
@@ -272,15 +281,10 @@ TEST_F(Persistence, FailedProjectSwitchAndMetadataWritePreserveCurrentState) {
     EXPECT_EQ(context_.selected_entity(), selected);
 }
 
-TEST_F(Persistence, RejectsAbsoluteAndEscapingMeshPathsAndNonFiniteFields) {
+TEST_F(Persistence, RejectsNonFiniteFields) {
     session_.create_project(root_, "Demo");
     auto entity = context_.create_entity();
-    auto& mesh = entity.add_component<MeshRendererComponent>();
-    mesh.mesh_ = "../outside.obj";
-    EXPECT_THROW(session_.save_scene(root_ / "assets/main.vscene"), std::exception);
-    mesh.mesh_ = root_ / "assets/model.obj";
-    EXPECT_THROW(session_.save_scene(root_ / "assets/main.vscene"), std::exception);
-    mesh.mesh_ = "assets/model.obj";
+    entity.add_component<MeshRendererComponent>();
     entity.get_component<TransformComponent>().translation_.x = std::numeric_limits<float>::infinity();
     EXPECT_THROW(session_.save_scene(root_ / "assets/main.vscene"), std::exception);
     EXPECT_FALSE(fs::exists(root_ / "assets/main.vscene"));
@@ -297,12 +301,81 @@ TEST_F(Persistence, UnicodeProjectSceneAndObjPathsWork) {
     EXPECT_EQ(context_.project()->last_scene_, editor::path_from_utf8("资源/场景.vscene"));
     const auto mesh_path = directory / editor::path_from_utf8("资源/模型.obj");
     std::ofstream(mesh_path) << "v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n";
-    const auto data = vulcal::asset::OBJImporter::load_obj(mesh_path);
-    ASSERT_EQ(data.vertices_.size(), 3u);
-    EXPECT_EQ(data.indices_.size(), 3u);
-    EXPECT_EQ(data.vertices_[0].normal, (glm::vec3{ 0, 0, 1 }));
+    std::string error;
+    const auto data = vulcal::asset_pipeline::load_obj(mesh_path, error);
+    ASSERT_TRUE(data.has_value()) << error;
+    EXPECT_EQ(data->vertices_.size(), 3u);
+    EXPECT_EQ(data->indices_.size(), 3u);
+    EXPECT_EQ(data->vertices_[0].normal, (glm::vec3{ 0, 0, 1 }));
     // OBJ files may provide normals for only some corners.
     std::ofstream(mesh_path) << "v 0 0 0\nv 1 0 0\nv 0 1 0\nvn 0 0 1\nf 1//1 2 3\n";
-    EXPECT_EQ(vulcal::asset::OBJImporter::load_obj(mesh_path).indices_.size(), 3u);
+    ASSERT_TRUE(vulcal::asset_pipeline::load_obj(mesh_path, error).has_value()) << error;
+    EXPECT_EQ(vulcal::asset_pipeline::load_obj(mesh_path, error)->indices_.size(), 3u);
+}
+
+TEST_F(Persistence, AssetDatabaseCreatesMetaAndMeshCache) {
+    session_.create_project(root_, "Demo");
+    const auto source = root_ / "assets/bunny.obj";
+    std::ofstream(source) << "v 0 0 0\nv 1 0 0\nv 0 1 0\nvn 0 0 1\nf 1//1 2//1 3//1\n";
+
+    vulcal::asset_pipeline::AssetDatabase assets;
+    const auto& project = *context_.project();
+    assets.set_roots(project.resolve(project.asset_directory_), project.root_directory() / ".vulcal_engine");
+    ASSERT_EQ(assets.records().size(), 1u);
+    const auto& record = assets.records().front();
+    EXPECT_EQ(record.kind_, vulcal::asset_pipeline::AssetKind::Mesh);
+    EXPECT_EQ(record.status_, vulcal::asset_pipeline::AssetStatus::Ready);
+    EXPECT_TRUE(fs::exists(editor::path_from_utf8(editor::path_to_utf8(source) + ".meta")));
+    EXPECT_TRUE(fs::exists(record.cache_path_));
+
+    const auto data = vulcal::asset::decode_mesh_bin(record.cache_path_);
+    ASSERT_TRUE(data.has_value());
+    EXPECT_EQ(data->vertices_.size(), 3u);
+    EXPECT_EQ(data->indices_.size(), 3u);
+
+    // The documented .meta example quotes the decimal ID; parsing accepts it and keeps identity.
+    const auto meta = editor::path_from_utf8(editor::path_to_utf8(source) + ".meta");
+    const auto original_id = record.id_;
+    {
+        std::ofstream(meta) << "format_version: 1\nid: \"" << original_id.value() << "\"\n";
+    }
+    assets.rescan();
+    ASSERT_EQ(assets.records().size(), 1u);
+    EXPECT_EQ(assets.records().front().id_, original_id);
+
+    // Caches are disposable: deleting .vulcal_engine regenerates them from the source.
+    fs::remove_all(assets.cache_directory());
+    assets.rescan();
+    ASSERT_EQ(assets.records().size(), 1u);
+    EXPECT_TRUE(fs::exists(assets.records().front().cache_path_));
+}
+
+TEST_F(Persistence, AssetDatabaseCreatesMaterialAndReportsDuplicateIds) {
+    session_.create_project(root_, "Demo");
+    vulcal::asset_pipeline::AssetDatabase assets;
+    const auto& project = *context_.project();
+    assets.set_roots(project.resolve(project.asset_directory_), project.root_directory() / ".vulcal_engine");
+
+    base::UUID id;
+    std::string error;
+    ASSERT_TRUE(assets.create_material("White", id, error)) << error;
+    ASSERT_NE(assets.find(id), nullptr);
+    const auto* material = assets.find(id);
+    ASSERT_NE(material, nullptr);
+    EXPECT_EQ(material->status_, vulcal::asset_pipeline::AssetStatus::Ready);
+    const auto cache = vulcal::asset::decode_material_bin(material->cache_path_);
+    ASSERT_TRUE(cache.has_value());
+    EXPECT_FLOAT_EQ(cache->shininess_, 8.0f);
+
+    // Copying a source together with its .meta produces a duplicate identity.
+    const auto source = root_ / "assets/White.vmat";
+    const auto meta = editor::path_from_utf8(editor::path_to_utf8(source) + ".meta");
+    fs::copy_file(source, root_ / "assets/Copy.vmat");
+    fs::copy_file(meta, editor::path_from_utf8(editor::path_to_utf8(root_ / "assets/Copy.vmat") + ".meta"));
+    assets.rescan();
+    ASSERT_EQ(assets.records().size(), 2u);
+    int failed = 0;
+    for (const auto& record: assets.records()) failed += record.status_ == vulcal::asset_pipeline::AssetStatus::Failed ? 1 : 0;
+    EXPECT_EQ(failed, 1);
 }
 } // namespace

@@ -1,10 +1,9 @@
 #pragma once
 
+#include "asset/asset_id.h"
 #include "base/uuid.h"
-#include "render/resources/resources_handle.h"
 
 #include <cstdint>
-#include <filesystem>
 #include <glm/glm.hpp>
 #include <string>
 
@@ -27,10 +26,9 @@ struct TransformComponent {
 };
 
 struct MeshRendererComponent {
-    // Temporary resource references; replace with Asset Pipeline references later.
-    std::filesystem::path mesh_;
-    // Optional transient override. The editor supplies a shared default material.
-    render::MaterialHandle material_;
+    // Persistent asset identities; renderer handles only exist for the current session.
+    asset::MeshID mesh_;
+    asset::MaterialID material_;
     bool visible_ = true;
 };
 

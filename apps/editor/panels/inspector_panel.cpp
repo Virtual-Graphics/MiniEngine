@@ -1,5 +1,8 @@
 #include "editor/panels/inspector_panel.h"
 
+#include "asset/asset_id.h"
+#include "common/asset/asset_database.h"
+#include "common/asset/material_file.h"
 #include "editor/app/editor_context.h"
 
 #include <algorithm>
@@ -8,6 +11,9 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 namespace editor {
+using vulcal::asset_pipeline::AssetDatabase;
+using vulcal::asset_pipeline::AssetKind;
+using vulcal::asset_pipeline::AssetStatus;
 namespace {
 
 bool section(const char* label) { return ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen); }
@@ -119,11 +125,36 @@ void draw_light(vulcal::scene::LightComponent& light) {
     ImGui::EndDisabled();
 }
 
+template<typename ID>
+void asset_combo(const char* label, ID& id, const AssetDatabase& assets, AssetKind kind) {
+    const auto* current = assets.find(id.value_);
+    const char* preview = current ? current->name_.c_str() : "None";
+    if (!ImGui::BeginCombo(label, preview)) return;
+    if (ImGui::Selectable("None", id.is_nil())) id = {};
+    int index = 0;
+    for (const auto& record: assets.records()) {
+        if (record.kind_ != kind || record.status_ != AssetStatus::Ready) continue;
+        ImGui::PushID(index++);
+        if (ImGui::Selectable(record.name_.c_str(), record.id_ == id.value_)) id = ID{ record.id_ };
+        ImGui::PopID();
+    }
+    ImGui::EndCombo();
+}
+
 } // namespace
 
-void InspectorPanel::draw(EditorContext& context, bool& open) const {
+void InspectorPanel::draw(EditorContext& context, AssetDatabase& assets, bool& open) {
     if (!open) return;
     if (ImGui::Begin("Inspector", &open)) {
+        const auto selected_asset = context.selected_asset();
+        if (!selected_asset.is_nil()) {
+            draw_asset(assets, selected_asset);
+            ImGui::End();
+            return;
+        }
+        editing_ = {};
+        draft_loaded_ = false;
+
         const auto entity = context.selected_entity();
         if (entity) {
             // Selection is resolved each frame; no component pointer survives a scene change.
@@ -140,10 +171,9 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
                 draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
             draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [&](auto& mesh) {
                 ImGui::Checkbox("Visible", &mesh.visible_);
-                auto path = path_to_utf8(mesh.mesh_);
-                if (ImGui::InputText("Mesh path", &path, ImGuiInputTextFlags_EnterReturnsTrue)) mesh.mesh_ = path_from_utf8(path);
-                ImGui::TextDisabled("Project-relative OBJ path; press Enter to apply (empty to clear).");
-                ImGui::TextDisabled("Uses the shared default material.");
+                asset_combo("Mesh", mesh.mesh_, assets, AssetKind::Mesh);
+                asset_combo("Material", mesh.material_, assets, AssetKind::Material);
+                ImGui::TextDisabled("Empty material uses the shared default material.");
             });
             draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);
             draw_component<vulcal::scene::LightComponent>(entity, "Light", draw_light);
@@ -162,10 +192,66 @@ void InspectorPanel::draw(EditorContext& context, bool& open) const {
             }
             ImGui::PopID();
         } else {
-            ImGui::TextDisabled("Select an entity in Hierarchy.");
+            ImGui::TextDisabled("Select an entity in Hierarchy or an asset in Content.");
         }
     }
     ImGui::End();
+}
+
+void InspectorPanel::draw_asset(AssetDatabase& assets, base::UUID id) {
+    const auto* record = assets.find(id);
+    if (!record) {
+        editing_ = {};
+        draft_loaded_ = false;
+        ImGui::TextDisabled("The selected asset is no longer in the project.");
+        return;
+    }
+
+    const auto asset_id = std::to_string(record->id_.value());
+    ImGui::PushID(asset_id.c_str());
+    ImGui::TextUnformatted(record->name_.c_str());
+    ImGui::TextDisabled("ID: %s", asset_id.c_str());
+    ImGui::TextDisabled("Source: %s", path_to_utf8(record->source_).c_str());
+    ImGui::Text("Type: %s", record->kind_ == AssetKind::Mesh ? "Mesh" : "Material");
+    ImGui::Text("Status: %s", record->status_ == AssetStatus::Ready ? "Ready" : "Failed");
+    if (!record->error_.empty()) ImGui::TextWrapped("%s", record->error_.c_str());
+    if (ImGui::Button("Reimport")) {
+        std::string error;
+        if (assets.reimport(record->id_, error)) asset_error_.clear();
+        else
+            asset_error_ = std::move(error);
+    }
+    if (!asset_error_.empty()) ImGui::TextWrapped("%s", asset_error_.c_str());
+
+    if (record->kind_ == AssetKind::Material) {
+        if (editing_ != record->id_) {
+            editing_ = record->id_;
+            draft_loaded_ = false;
+            std::string error;
+            if (auto material = vulcal::asset_pipeline::read_material(record->source_, error)) {
+                draft_ = *material;
+                draft_loaded_ = true;
+                asset_error_.clear();
+            } else {
+                asset_error_ = std::move(error);
+            }
+        }
+        if (draft_loaded_) {
+            ImGui::Separator();
+            ImGui::ColorEdit3("Diffuse", &draft_.diffuse_.x);
+            ImGui::ColorEdit3("Specular", &draft_.specular_.x);
+            bounded_drag("Shininess", draft_.shininess_, 0.0f, 1000.0f);
+            if (ImGui::Button("Save")) {
+                std::string error;
+                if (!vulcal::asset_pipeline::write_material(record->source_, draft_, error)) asset_error_ = std::move(error);
+                else if (!assets.reimport(record->id_, error))
+                    asset_error_ = std::move(error);
+                else
+                    asset_error_.clear();
+            }
+        }
+    }
+    ImGui::PopID();
 }
 
 } // namespace editor

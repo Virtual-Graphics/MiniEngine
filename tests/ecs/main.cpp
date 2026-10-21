@@ -1,3 +1,5 @@
+#include "asset/material_bin.h"
+#include "asset/mesh_bin.h"
 #include "base/uuid.h"
 #include "scene/components.h"
 #include "scene/scene.h"
@@ -5,6 +7,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <filesystem>
+#include <fstream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <gtest/gtest.h>
@@ -74,11 +78,12 @@ TEST(Scene, AddGetAndRemoveComponents) {
     vulcal::scene::Scene scene;
     auto entity = scene.create_entity("Player");
 
+    const auto mesh_id = vulcal::asset::MeshID{ base::UUID::generate() };
     auto& mesh_renderer = entity.add_component<vulcal::scene::MeshRendererComponent>();
-    mesh_renderer.mesh_ = "assets/mesh.obj";
-    mesh_renderer.material_ = vulcal::render::MaterialHandle{ 9 };
+    mesh_renderer.mesh_ = mesh_id;
+    mesh_renderer.material_ = vulcal::asset::MaterialID{ base::UUID::generate() };
     EXPECT_TRUE(entity.has_component<vulcal::scene::MeshRendererComponent>());
-    EXPECT_EQ(entity.get_component<vulcal::scene::MeshRendererComponent>().mesh_, "assets/mesh.obj");
+    EXPECT_EQ(entity.get_component<vulcal::scene::MeshRendererComponent>().mesh_, mesh_id);
 
     entity.remove_component<vulcal::scene::MeshRendererComponent>();
     EXPECT_FALSE(entity.has_component<vulcal::scene::MeshRendererComponent>());
@@ -130,13 +135,14 @@ TEST(Scene, WrapperTraversalFiltersComponentsAndReturnsOwnedEntities) {
     entity.add_component<vulcal::scene::MeshRendererComponent>();
     scene.create_entity("Empty");
     int visited = 0;
-    scene.each<vulcal::scene::TagComponent, vulcal::scene::MeshRendererComponent>([&](vulcal::scene::Entity current, auto& tag, auto& mesh) {
-        EXPECT_EQ(current, entity);
-        EXPECT_TRUE(scene.contains(current));
-        tag.name_ = "Edited";
-        mesh.visible_ = false;
-        ++visited;
-    });
+    scene.each<vulcal::scene::TagComponent, vulcal::scene::MeshRendererComponent>(
+            [&](vulcal::scene::Entity current, auto& tag, auto& mesh) {
+                EXPECT_EQ(current, entity);
+                EXPECT_TRUE(scene.contains(current));
+                tag.name_ = "Edited";
+                mesh.visible_ = false;
+                ++visited;
+            });
     EXPECT_EQ(visited, 1);
     EXPECT_EQ(entity.get_component<vulcal::scene::TagComponent>().name_, "Edited");
     EXPECT_FALSE(entity.get_component<vulcal::scene::MeshRendererComponent>().visible_);
@@ -201,9 +207,10 @@ TEST(SceneCopy, CopyPreservesEntitiesAndComponents) {
     auto source = scene.create_entity("Source");
     source.get_component<vulcal::scene::TransformComponent>().translation_ = glm::vec3{ 4.0f, 5.0f, 6.0f };
 
+    const auto source_mesh = vulcal::asset::MeshID{ base::UUID::generate() };
     auto& source_renderer = source.add_component<vulcal::scene::MeshRendererComponent>();
-    source_renderer.mesh_ = "assets/source.obj";
-    source_renderer.material_ = vulcal::render::MaterialHandle{ 22 };
+    source_renderer.mesh_ = source_mesh;
+    source_renderer.material_ = vulcal::asset::MaterialID{ base::UUID::generate() };
 
     auto& camera = source.add_component<vulcal::scene::CameraComponent>();
     camera.primary_ = true;
@@ -234,7 +241,7 @@ TEST(SceneCopy, CopyPreservesEntitiesAndComponents) {
     expect_near(copied_source.get_component<vulcal::scene::TransformComponent>().translation_, source_translation);
     EXPECT_TRUE(copied_source.has_component<vulcal::scene::CameraComponent>());
     EXPECT_TRUE(copied_source.get_component<vulcal::scene::CameraComponent>().primary_);
-    EXPECT_EQ(copied_source.get_component<vulcal::scene::MeshRendererComponent>().mesh_, "assets/source.obj");
+    EXPECT_EQ(copied_source.get_component<vulcal::scene::MeshRendererComponent>().mesh_, source_mesh);
 
     const auto environment_view = copy.registry().view<const vulcal::scene::EnvironmentComponent>();
     ASSERT_FALSE(environment_view.empty());
@@ -319,13 +326,13 @@ protected:
         auto mesh_entity = scene_.create_entity("Mesh");
         mesh_entity.get_component<vulcal::scene::TransformComponent>().translation_ = glm::vec3{ 1.0f, 2.0f, 3.0f };
         auto& mesh_renderer = mesh_entity.add_component<vulcal::scene::MeshRendererComponent>();
-        mesh_renderer.mesh_ = "assets/visible.obj";
-        mesh_renderer.material_ = vulcal::render::MaterialHandle{ 22 };
+        mesh_renderer.mesh_ = vulcal::asset::MeshID{ base::UUID::generate() };
+        mesh_renderer.material_ = vulcal::asset::MaterialID{ base::UUID::generate() };
 
         auto hidden_entity = scene_.create_entity("Hidden");
         auto& hidden_renderer = hidden_entity.add_component<vulcal::scene::MeshRendererComponent>();
-        hidden_renderer.mesh_ = "assets/hidden.obj";
-        hidden_renderer.material_ = vulcal::render::MaterialHandle{ 44 };
+        hidden_renderer.mesh_ = vulcal::asset::MeshID{ base::UUID::generate() };
+        hidden_renderer.material_ = vulcal::asset::MaterialID{ base::UUID::generate() };
         hidden_renderer.visible_ = false;
     }
 
@@ -345,9 +352,7 @@ TEST_F(SceneExtractorTest, UsesPrimaryCamera) {
     EXPECT_NEAR(data.camera_.projection_[0][0], expected_projection_00, 1e-4f);
 }
 
-TEST_F(SceneExtractorTest, SkipsMeshesWithoutCache) {
-    EXPECT_TRUE(extractor_.extract(scene_).items_.empty());
-}
+TEST_F(SceneExtractorTest, SkipsMeshesWithoutAssetManager) { EXPECT_TRUE(extractor_.extract(scene_).items_.empty()); }
 
 TEST_F(SceneExtractorTest, ExtractsEnvironment) {
     const auto data = extractor_.extract(scene_);
@@ -426,6 +431,53 @@ TEST(SceneLight, DirectionUsesRotationWithoutTranslationOrScale) {
     const auto data = vulcal::scene::SceneExtractor{}.extract(scene, options);
     ASSERT_TRUE(data.directional_light_);
     expect_near(data.directional_light_->direction_, { -1.0f, 0.0f, 0.0f });
+}
+
+TEST(AssetBin, MeshCacheRoundTripsAndRejectsTruncatedData) {
+    vulcal::MeshData mesh;
+    mesh.vertices_ = {
+        { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+        { { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+        { { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+    };
+    mesh.indices_ = { 0, 1, 2 };
+    const auto path = std::filesystem::temp_directory_path() / ("vulcal-mesh-bin-" + base::UUID::generate().to_string() + ".vmesh");
+
+    std::string error;
+    ASSERT_TRUE(vulcal::asset::encode_mesh_bin(path, mesh, error)) << error;
+    const auto decoded = vulcal::asset::decode_mesh_bin(path);
+    ASSERT_TRUE(decoded.has_value());
+    EXPECT_EQ(decoded->vertices_.size(), 3u);
+    EXPECT_EQ(decoded->indices_.size(), 3u);
+    EXPECT_EQ(decoded->vertices_[1].position, (glm::vec3{ 1.0f, 0.0f, 0.0f }));
+
+    {
+        std::ofstream truncated(path, std::ios::binary | std::ios::trunc);
+        truncated << "VM";
+    }
+    EXPECT_FALSE(vulcal::asset::decode_mesh_bin(path).has_value());
+
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
+}
+
+TEST(AssetBin, MaterialCacheRoundTrips) {
+    vulcal::render::Material material;
+    material.diffuse_ = { 0.1f, 0.2f, 0.3f };
+    material.specular_ = { 0.4f, 0.5f, 0.6f };
+    material.shininess_ = 12.5f;
+    const auto path = std::filesystem::temp_directory_path() / ("vulcal-material-bin-" + base::UUID::generate().to_string() + ".vmatc");
+
+    std::string error;
+    ASSERT_TRUE(vulcal::asset::encode_material_bin(path, material, error)) << error;
+    const auto decoded = vulcal::asset::decode_material_bin(path);
+    ASSERT_TRUE(decoded.has_value());
+    EXPECT_EQ(decoded->diffuse_, material.diffuse_);
+    EXPECT_EQ(decoded->specular_, material.specular_);
+    EXPECT_FLOAT_EQ(decoded->shininess_, 12.5f);
+
+    std::error_code ignored;
+    std::filesystem::remove(path, ignored);
 }
 
 } // namespace

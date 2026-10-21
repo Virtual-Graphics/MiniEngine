@@ -40,7 +40,7 @@ void validate(const Project& project) {
         throw std::invalid_argument("Enter a valid project name (without filename separators)");
     validate_relative_path(project.asset_directory_);
     const auto asset_relative = fs::weakly_canonical(project.resolve(project.asset_directory_))
-        .lexically_relative(fs::weakly_canonical(project.root_directory()));
+                                        .lexically_relative(fs::weakly_canonical(project.root_directory()));
     validate_relative_path(asset_relative);
     if (!project.last_scene_.empty()) {
         validate_relative_path(project.last_scene_);
@@ -66,9 +66,10 @@ Project ProjectSerializer::create(const fs::path& directory, const std::string& 
     if (directory.empty() || !fs::is_directory(directory)) throw std::invalid_argument("Select an existing project directory");
     Project project{ name, author, asset_directory, {}, fs::weakly_canonical(directory) / path_from_utf8(name + ".vproj") };
     validate(project);
-    for (const auto& entry : fs::directory_iterator(project.root_directory())) {
+    for (const auto& entry: fs::directory_iterator(project.root_directory())) {
         auto extension = path_to_utf8(entry.path().extension());
-        std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        std::transform(extension.begin(), extension.end(), extension.begin(),
+                [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         if (extension == ".vproj") throw std::runtime_error("The selected directory already contains a .vproj project");
     }
     fs::create_directories(project.resolve(project.asset_directory_));
@@ -78,7 +79,7 @@ Project ProjectSerializer::create(const fs::path& directory, const std::string& 
 
 Project ProjectSerializer::load(const fs::path& path) {
     if (path.extension() != ".vproj") throw std::invalid_argument("Select a .vproj file");
-    const auto root = yaml_io::read(path);
+    const auto root = yaml_io::read(path, 1);
     const auto data = root["project"];
     if (!data.IsMap()) throw std::runtime_error("Project information is missing");
     Project project{ data["name"].as<std::string>(), data["author"].as<std::string>(""),

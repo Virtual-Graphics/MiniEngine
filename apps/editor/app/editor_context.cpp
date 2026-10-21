@@ -20,6 +20,7 @@ const vulcal::scene::Scene& EditorContext::scene() const {
 void EditorContext::set_scene(std::unique_ptr<vulcal::scene::Scene> scene, std::filesystem::path path) {
     if (!scene) throw std::invalid_argument("EditorContext requires a scene");
     selected_ = {};
+    selected_asset_ = {};
     scene_ = std::move(scene);
     scene_path_ = std::move(path);
 }
@@ -34,11 +35,19 @@ void EditorContext::update_saved_scene(Project project, std::filesystem::path pa
     scene_path_ = std::move(path);
 }
 
-vulcal::scene::Entity EditorContext::selected_entity() const { return scene_ && scene_->contains(selected_) ? selected_ : vulcal::scene::Entity{}; }
+vulcal::scene::Entity EditorContext::selected_entity() const {
+    return scene_ && scene_->contains(selected_) ? selected_ : vulcal::scene::Entity{};
+}
 
 void EditorContext::select(vulcal::scene::Entity entity) {
     if (entity && (!scene_ || !scene_->contains(entity))) throw std::invalid_argument("Entity belongs to a different scene");
     selected_ = entity ? entity : vulcal::scene::Entity{};
+    selected_asset_ = {};
+}
+
+void EditorContext::select_asset(base::UUID asset) {
+    selected_ = {};
+    selected_asset_ = asset;
 }
 
 vulcal::scene::Entity EditorContext::create_entity() {

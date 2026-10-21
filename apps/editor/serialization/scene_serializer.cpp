@@ -1,4 +1,5 @@
 #include "editor/serialization/scene_serializer.h"
+#include "base/parse.h"
 #include "editor/serialization/yaml_io.h"
 #include "scene/scene.h"
 
@@ -13,7 +14,8 @@ using namespace vulcal::scene;
 template<typename T>
 void field(YAML::Node node, const char* key, T& value, bool loading) {
     if (loading) value = node[key].as<T>();
-    else node[key] = value;
+    else
+        node[key] = value;
     if constexpr (std::is_floating_point_v<T>) {
         if (!std::isfinite(value)) throw std::runtime_error(std::string("Non-finite field: ") + key);
     }
@@ -35,25 +37,39 @@ void field(YAML::Node node, const char* key, glm::vec<N, float>& value, bool loa
         if (!std::isfinite(value[i])) throw std::runtime_error(std::string("Non-finite vector: ") + key);
 }
 
-// Version 1's component schema is intentionally explicit and local to the editor.
+// Version 2's component schema is intentionally explicit and local to the editor.
 void fields(YAML::Node n, TransformComponent& c, bool load) {
     field(n, "translation", c.translation_, load);
     field(n, "rotation", c.rotation_, load);
     field(n, "scale", c.scale_, load);
 }
+
 void fields(YAML::Node n, MeshRendererComponent& c, bool load) {
-    if (load) c.mesh_ = path_from_utf8(n["mesh"].as<std::string>());
-    else n["mesh"] = path_to_utf8(c.mesh_.lexically_normal());
-    validate_relative_path(c.mesh_, true);
+    if (load) {
+        const auto read_id = [&n](const char* key) {
+            const auto node = n[key];
+            if (!node) return std::uint64_t{ 0 };
+            if (!node.IsScalar()) throw std::runtime_error(std::string("Invalid asset id: ") + key);
+            const auto value = base::parse_uint64(node.Scalar());
+            if (!value) throw std::runtime_error(std::string("Invalid asset id: ") + key);
+            return *value;
+        };
+        c.mesh_ = vulcal::asset::MeshID{ base::UUID{ read_id("mesh") } };
+        c.material_ = vulcal::asset::MaterialID{ base::UUID{ read_id("material") } };
+    } else {
+        n["mesh"] = c.mesh_.value_.value();
+        n["material"] = c.material_.value_.value();
+    }
     field(n, "visible", c.visible_, load);
-    // Material handles are transient; loaded meshes use the editor's default material.
 }
 void fields(YAML::Node n, CameraComponent& c, bool load) {
     std::string projection = c.projection_type_ == CameraComponent::ProjectionType::Perspective ? "perspective" : "orthographic";
     field(n, "projection", projection, load);
     if (projection == "perspective") c.projection_type_ = CameraComponent::ProjectionType::Perspective;
-    else if (projection == "orthographic") c.projection_type_ = CameraComponent::ProjectionType::Orthographic;
-    else throw std::runtime_error("Unknown camera projection");
+    else if (projection == "orthographic")
+        c.projection_type_ = CameraComponent::ProjectionType::Orthographic;
+    else
+        throw std::runtime_error("Unknown camera projection");
     field(n, "primary", c.primary_, load);
     field(n, "perspective_fov_y", c.perspective_fov_y_, load);
     field(n, "perspective_aspect", c.perspective_aspect_, load);
@@ -65,8 +81,8 @@ void fields(YAML::Node n, CameraComponent& c, bool load) {
     field(n, "orthographic_top", c.orthographic_top_, load);
     field(n, "orthographic_near", c.orthographic_near_, load);
     field(n, "orthographic_far", c.orthographic_far_, load);
-    if (c.perspective_fov_y_ <= 0.0f || c.perspective_fov_y_ >= std::numbers::pi_v<float> ||
-            c.perspective_aspect_ <= 0.0f || c.perspective_near_ <= 0.0f || c.perspective_far_ <= c.perspective_near_)
+    if (c.perspective_fov_y_ <= 0.0f || c.perspective_fov_y_ >= std::numbers::pi_v<float> || c.perspective_aspect_ <= 0.0f ||
+            c.perspective_near_ <= 0.0f || c.perspective_far_ <= c.perspective_near_)
         throw std::runtime_error("Invalid perspective camera bounds");
     if (c.orthographic_right_ <= c.orthographic_left_ || c.orthographic_top_ <= c.orthographic_bottom_ ||
             c.orthographic_far_ <= c.orthographic_near_)
@@ -87,8 +103,13 @@ void fields(YAML::Node n, LightComponent& c, bool load) {
     field(n, "shadow_depth_bias", c.shadow_depth_bias_, load);
     field(n, "shadow_normal_bias", c.shadow_normal_bias_, load);
     switch (c.shadow_map_size_) {
-    case 512: case 1024: case 2048: case 4096: break;
-    default: throw std::runtime_error("Shadow map size must be 512, 1024, 2048 or 4096");
+        case 512:
+        case 1024:
+        case 2048:
+        case 4096:
+            break;
+        default:
+            throw std::runtime_error("Shadow map size must be 512, 1024, 2048 or 4096");
     }
     if (c.shadow_extent_ <= 0.0f || c.shadow_near_ < 0.0f || c.shadow_far_ <= c.shadow_near_)
         throw std::runtime_error("Invalid shadow projection bounds");
@@ -117,11 +138,11 @@ void load_component(const YAML::Node& node, const char* key, Entity entity) {
 
 void SceneSerializer::save(const Scene& scene, const std::filesystem::path& path) {
     YAML::Node root;
-    root["format_version"] = 1;
+    root["format_version"] = 2;
     auto entities = root["entities"] = YAML::Node(YAML::NodeType::Sequence);
     std::unordered_set<std::uint64_t> ids;
     const auto& registry = scene.registry();
-    for (const auto entity : registry.view<const IDComponent, const TagComponent, const TransformComponent>()) {
+    for (const auto entity: registry.view<const IDComponent, const TagComponent, const TransformComponent>()) {
         YAML::Node node;
         const auto id = registry.get<IDComponent>(entity).id_.value();
         if (id == 0 || !ids.insert(id).second) throw std::runtime_error("Scene contains nil or duplicate entity UUIDs");
@@ -138,12 +159,12 @@ void SceneSerializer::save(const Scene& scene, const std::filesystem::path& path
 }
 
 std::unique_ptr<Scene> SceneSerializer::load(const std::filesystem::path& path) {
-    const auto root = yaml_io::read(path);
+    const auto root = yaml_io::read(path, 2);
     const auto entities = root["entities"];
     if (!entities.IsSequence()) throw std::runtime_error("Scene entities must be a sequence");
     auto scene = std::make_unique<Scene>();
     std::unordered_set<std::uint64_t> ids;
-    for (const auto& node : entities) {
+    for (const auto& node: entities) {
         const auto id = node["id"].as<std::uint64_t>();
         if (id == 0 || !ids.insert(id).second) throw std::runtime_error("Scene contains nil or duplicate entity UUIDs");
         auto entity = scene->create_entity(node["name"].as<std::string>());

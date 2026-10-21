@@ -9,3 +9,4 @@ imgui.ini
 vulcal_editor.ini
 docs/superpowers/
 log/
+.vulcal_engine/

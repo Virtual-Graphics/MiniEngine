@@ -1,4 +1,4 @@
-#include "asset/mesh_cache.h"
+#include "common/asset/obj_loader.h"
 #include "common/imgui_integration.h"
 #include "engine/application.h"
 #include "engine/layer.h"
@@ -14,26 +14,30 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
-#include <memory>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 
 class ModelViewerLayer : public engine::Layer {
 public:
     explicit ModelViewerLayer(std::filesystem::path model_path)
-            : engine::Layer("ModelViewerLayer"), model_path_(std::move(model_path)) {}
+            : engine::Layer("ModelViewerLayer"),
+              model_path_(std::move(model_path)) {}
 
     void on_attach() override {
         renderer_ = std::make_unique<vulcal::render::Renderer>();
-        mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
-        if (!mesh_cache_->load(model_path_).value_) throw std::runtime_error("Could not load the requested OBJ mesh");
+
+        std::string error;
+        const auto mesh = vulcal::asset_pipeline::load_obj(model_path_, error);
+        if (!mesh) throw std::runtime_error("Could not load the requested OBJ mesh: " + error);
+        model_mesh_ = renderer_->create_mesh(*mesh);
 
         vulcal::render::Material material;
         material.diffuse_ = glm::vec3{ 0.9f };
         material.specular_ = glm::vec3{ 0.08f };
         material.shininess_ = 8.0f;
-        const auto material_handle = renderer_->create_material(material);
+        model_material_ = renderer_->create_material(material);
 
         vulcal::MeshData ground_data;
         const float half = 20.0f;
@@ -59,9 +63,6 @@ public:
         auto& model_transform = model_entity_.get_component<vulcal::scene::TransformComponent>();
         model_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
         model_transform.scale_ = glm::vec3{ 15.0f };
-        auto& model_renderer = model_entity_.add_component<vulcal::scene::MeshRendererComponent>();
-        model_renderer.mesh_ = model_path_;
-        model_renderer.material_ = material_handle;
 
         environment_entity_ = scene_->create_entity("Environment");
         auto& environment = environment_entity_.add_component<vulcal::scene::EnvironmentComponent>();
@@ -116,14 +117,16 @@ public:
     void on_detach() override {
         imgui_.reset();
         renderer_->destroy_mesh(ground_mesh_);
-        mesh_cache_.reset();
+        renderer_->destroy_mesh(model_mesh_);
         renderer_.reset();
     }
 
     void on_render() override {
+        // The viewer has no project or AssetDatabase; it appends its mesh directly.
         vulcal::scene::SceneExtractor::Options options;
-        options.mesh_cache_ = mesh_cache_.get();
         auto data = extractor_.extract(*scene_, options);
+        const auto& transform = model_entity_.get_component<vulcal::scene::TransformComponent>();
+        data.items_.push_back({ model_mesh_, model_material_, transform.matrix() });
         data.items_.push_back({ ground_mesh_, ground_material_, glm::mat4{ 1.0f } });
         renderer_->render(data);
         imgui_->render();
@@ -193,7 +196,6 @@ private:
     }
 
     std::unique_ptr<vulcal::render::Renderer> renderer_;
-    std::unique_ptr<vulcal::asset::MeshCache> mesh_cache_;
     std::unique_ptr<vulcal::scene::Scene> scene_;
     vulcal::scene::Entity model_entity_;
     vulcal::scene::Entity camera_entity_;
@@ -202,6 +204,8 @@ private:
     vulcal::scene::SceneExtractor extractor_;
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
     std::filesystem::path model_path_;
+    vulcal::render::MeshHandle model_mesh_;
+    vulcal::render::MaterialHandle model_material_;
     vulcal::render::MeshHandle ground_mesh_;
     vulcal::render::MaterialHandle ground_material_;
     bool rotate_model_ = true;

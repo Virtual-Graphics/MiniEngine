@@ -1,12 +1,29 @@
 #pragma once
 
+#include "base/uuid.h"
+#include "render/resources/material.h"
+
+#include <string>
+
+namespace vulcal::asset_pipeline {
+class AssetDatabase;
+}
+
 namespace editor {
 
 class EditorContext;
 
 class InspectorPanel {
 public:
-    void draw(EditorContext& context, bool& open) const;
+    void draw(EditorContext& context, vulcal::asset_pipeline::AssetDatabase& assets, bool& open);
+
+private:
+    void draw_asset(vulcal::asset_pipeline::AssetDatabase& assets, base::UUID id);
+
+    base::UUID editing_;
+    vulcal::render::Material draft_;
+    bool draft_loaded_ = false;
+    std::string asset_error_;
 };
 
 } // namespace editor

@@ -7,6 +7,7 @@ add_library(vulcal_editor STATIC
     dialogs/dialog.cpp
     dialogs/native_file_dialog.cpp
     dialogs/new_project_dialog.cpp
+    panels/content_panel.cpp
     panels/hierarchy_panel.cpp
     panels/inspector_panel.cpp
     panels/viewport_panel.cpp
@@ -17,7 +18,7 @@ add_library(vulcal_editor STATIC
     serialization/scene_serializer.cpp
     "${IMGUI_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp"
 )
-target_link_libraries(vulcal_editor PUBLIC vulcal_app_imgui)
+target_link_libraries(vulcal_editor PUBLIC vulcal_app_imgui vulcal_app_asset)
 target_link_libraries(vulcal_editor PRIVATE yaml-cpp::yaml-cpp nfd::nfd)
 
 add_executable(editor app/main.cpp)

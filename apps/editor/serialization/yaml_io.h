@@ -1,7 +1,7 @@
 #pragma once
 
-#include "editor/project/project.h"
 #include "base/uuid.h"
+#include "editor/project/project.h"
 #include <fstream>
 #include <stdexcept>
 #include <system_error>
@@ -16,18 +16,19 @@
 
 namespace editor::yaml_io {
 
-inline YAML::Node read(const std::filesystem::path& path) {
+inline YAML::Node read(const std::filesystem::path& path, int format_version) {
     std::ifstream input(path, std::ios::binary);
     if (!input) throw std::runtime_error("Could not open " + path_to_utf8(path));
     auto document = YAML::Load(input);
-    if (!document.IsMap() || document["format_version"].as<int>() != 1)
+    if (!document.IsMap() || document["format_version"].as<int>() != format_version)
         throw std::runtime_error("Unsupported or missing format_version in " + path_to_utf8(path));
     return document;
 }
 
 // Write beside the destination, then replace it, so failed writes do not truncate existing files.
 inline void write(const std::filesystem::path& path, const YAML::Node& document, bool overwrite = true) {
-    const auto temporary = path.parent_path() / path_from_utf8(path_to_utf8(path.filename()) + "." + base::UUID::generate().to_string() + ".tmp");
+    const auto temporary =
+            path.parent_path() / path_from_utf8(path_to_utf8(path.filename()) + "." + base::UUID::generate().to_string() + ".tmp");
     try {
         YAML::Emitter emitter;
         emitter.SetIndent(2);

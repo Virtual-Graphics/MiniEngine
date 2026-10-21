@@ -1,15 +1,17 @@
 #pragma once
 
-#include "editor/scene/editor_camera.h"
+#include "common/asset/asset_database.h"
 #include "editor/app/editor_context.h"
+#include "editor/dialogs/dialog.h"
+#include "editor/dialogs/new_project_dialog.h"
+#include "editor/panels/content_panel.h"
 #include "editor/panels/hierarchy_panel.h"
 #include "editor/panels/inspector_panel.h"
 #include "editor/panels/viewport_panel.h"
+#include "editor/project/project_session.h"
+#include "editor/scene/editor_camera.h"
 #include "engine/layer.h"
 #include "scene/scene_extractor.h"
-#include "editor/dialogs/dialog.h"
-#include "editor/dialogs/new_project_dialog.h"
-#include "editor/project/project_session.h"
 
 #include <memory>
 
@@ -19,7 +21,9 @@ class ImGuiIntegration;
 namespace vulcal::render {
 class Renderer;
 }
-namespace vulcal::asset { class MeshCache; }
+namespace vulcal::asset {
+class AssetManager;
+}
 
 namespace editor {
 
@@ -45,19 +49,23 @@ private:
 
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
     std::unique_ptr<vulcal::render::Renderer> renderer_;
-    std::unique_ptr<vulcal::asset::MeshCache> mesh_cache_;
+    std::unique_ptr<vulcal::asset::AssetManager> asset_manager_;
     std::unique_ptr<class NativeFileDialog> file_dialogs_;
     vulcal::render::MaterialHandle default_material_;
     EditorContext context_;
+    vulcal::asset_pipeline::AssetDatabase assets_;
     ProjectSession session_{ context_ };
     NewProjectDialog new_project_;
     MessageDialog error_dialog_;
     EditorCamera camera_;
     vulcal::scene::SceneExtractor extractor_;
     HierarchyPanel hierarchy_;
+    ContentPanel content_;
     InspectorPanel inspector_;
     ViewportPanel viewport_;
+    std::uint64_t assets_revision_ = 0;
     bool hierarchy_open_ = true;
+    bool content_open_ = true;
     bool inspector_open_ = true;
     bool viewport_open_ = true;
     bool reset_layout_ = false;

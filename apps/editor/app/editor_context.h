@@ -1,7 +1,8 @@
 #pragma once
 
-#include "scene/scene.h"
+#include "base/uuid.h"
 #include "editor/project/project.h"
+#include "scene/scene.h"
 
 #include <memory>
 #include <optional>
@@ -22,6 +23,8 @@ public:
 
     vulcal::scene::Entity selected_entity() const;
     void select(vulcal::scene::Entity entity);
+    base::UUID selected_asset() const { return selected_asset_; }
+    void select_asset(base::UUID asset);
     vulcal::scene::Entity create_entity();
     void destroy_entity(vulcal::scene::Entity entity);
 
@@ -30,6 +33,7 @@ private:
     std::unique_ptr<vulcal::scene::Scene> scene_;
     std::filesystem::path scene_path_;
     vulcal::scene::Entity selected_;
+    base::UUID selected_asset_;
 };
 
 } // namespace editor

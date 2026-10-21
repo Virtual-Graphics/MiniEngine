@@ -1,5 +1,15 @@
-format_version: 1
+format_version: 2
 entities:
+  - id: 2555767175749592675
+    name: Entity
+    transform:
+      translation: [0.850000024, 0.850000024, 0]
+      rotation: [-0.20071286, 0, 0]
+      scale: [10, 10, 10]
+    mesh_renderer:
+      mesh: 1234567890123456789
+      material: 0
+      visible: true
   - id: 3253000336927422207
     name: Entity
     transform:
@@ -7,7 +17,8 @@ entities:
       rotation: [0, 0, 0]
       scale: [4.57000017, 4.0999999, 4.48000002]
     mesh_renderer:
-      mesh: assets/StanfordBunny.obj
+      mesh: 1234567890123456789
+      material: 13752296173489405989
       visible: true
   - id: 9433580224979648958
     name: Entity

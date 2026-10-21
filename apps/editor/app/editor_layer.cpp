@@ -1,10 +1,10 @@
 #include "editor/app/editor_layer.h"
 
+#include "asset/asset_manager.h"
 #include "base/input.h"
 #include "base/logger.h"
 #include "common/imgui_integration.h"
 #include "editor/dialogs/native_file_dialog.h"
-#include "asset/mesh_cache.h"
 #include "engine/application.h"
 #include "gfx/command.h"
 #include "render/renderer.h"
@@ -16,10 +16,11 @@
 namespace editor {
 
 EditorLayer::EditorLayer()
-        : engine::Layer("EditorLayer"), new_project_([this](const auto& directory, const auto& name, const auto& author, const auto& assets) {
-            session_.create_project(directory, name, author, assets);
-            project_changed();
-        }) {}
+        : engine::Layer("EditorLayer"),
+          new_project_([this](const auto& directory, const auto& name, const auto& author, const auto& assets) {
+              session_.create_project(directory, name, author, assets);
+              project_changed();
+          }) {}
 
 EditorLayer::~EditorLayer() = default;
 
@@ -30,7 +31,7 @@ void EditorLayer::on_attach() {
     io.IniFilename = "vulcal_editor.ini";
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     renderer_ = std::make_unique<vulcal::render::Renderer>();
-    mesh_cache_ = std::make_unique<vulcal::asset::MeshCache>(*renderer_);
+    asset_manager_ = std::make_unique<vulcal::asset::AssetManager>(*renderer_);
     default_material_ = renderer_->create_material(vulcal::render::Material{});
     file_dialogs_ = std::make_unique<NativeFileDialog>();
     base::log::info("Editor initialized without a project");
@@ -38,7 +39,9 @@ void EditorLayer::on_attach() {
 
 void EditorLayer::on_detach() {
     release_camera();
-    mesh_cache_.reset();
+    // Handles must be released while the Renderer still owns the GPU objects.
+    asset_manager_->clear();
+    asset_manager_.reset();
     renderer_.reset();
     file_dialogs_.reset();
     imgui_.reset();
@@ -46,16 +49,21 @@ void EditorLayer::on_detach() {
 
 void EditorLayer::run_operation(const std::function<void()>& operation) {
     release_camera();
-    try { operation(); }
-    catch (const std::exception& error) {
+    try {
+        operation();
+    } catch (const std::exception& error) {
         base::log::error("Editor operation failed: {}", error.what());
         error_dialog_.show(error.what());
     }
 }
 
 void EditorLayer::project_changed() {
-    mesh_cache_->clear();
     camera_ = EditorCamera{};
+    const auto& project = *context_.project();
+    assets_.set_roots(project.resolve(project.asset_directory_), project.root_directory() / ".vulcal_engine");
+    asset_manager_->set_cache_directory(assets_.cache_directory());
+    asset_manager_->clear();
+    assets_revision_ = assets_.revision();
     base::log::info("Opened project: {}", context_.project()->name_);
 }
 
@@ -73,7 +81,10 @@ void EditorLayer::save_scene_as() {
     struct EmptyDirectory {
         std::filesystem::path path;
         ~EmptyDirectory() {
-            if (!path.empty()) { std::error_code ignored; std::filesystem::remove(path, ignored); }
+            if (!path.empty()) {
+                std::error_code ignored;
+                std::filesystem::remove(path, ignored);
+            }
         }
     } cleanup{ std::filesystem::exists(directory) ? std::filesystem::path{} : directory };
     std::filesystem::create_directories(directory);
@@ -82,25 +93,32 @@ void EditorLayer::save_scene_as() {
 
 void EditorLayer::draw_file_menu() {
     if (!ImGui::BeginMenu("File")) return;
-    if (ImGui::MenuItem("New Project...")) { release_camera(); new_project_.open(); }
-    if (ImGui::MenuItem("Open Project...")) run_operation([&] {
-        if (auto path = NativeFileDialog::open("Vulcal Project", "vproj")) {
-            session_.open_project(*path);
-            project_changed();
-        }
-    });
+    if (ImGui::MenuItem("New Project...")) {
+        release_camera();
+        new_project_.open();
+    }
+    if (ImGui::MenuItem("Open Project..."))
+        run_operation([&] {
+            if (auto path = NativeFileDialog::open("Vulcal Project", "vproj")) {
+                session_.open_project(*path);
+                project_changed();
+            }
+        });
     ImGui::Separator();
     ImGui::BeginDisabled(!context_.project());
     if (ImGui::MenuItem("New Scene")) run_operation([&] { session_.new_scene(); });
-    if (ImGui::MenuItem("Open Scene...")) run_operation([&] {
-        auto directory = scene_directory();
-        if (!std::filesystem::exists(directory)) directory = directory.parent_path();
-        if (auto path = NativeFileDialog::open("Vulcal Scene", "vscene", directory)) session_.open_scene(*path);
-    });
-    if (ImGui::MenuItem("Save Scene")) run_operation([&] {
-        if (context_.scene_path().empty()) save_scene_as();
-        else session_.save_scene();
-    });
+    if (ImGui::MenuItem("Open Scene..."))
+        run_operation([&] {
+            auto directory = scene_directory();
+            if (!std::filesystem::exists(directory)) directory = directory.parent_path();
+            if (auto path = NativeFileDialog::open("Vulcal Scene", "vscene", directory)) session_.open_scene(*path);
+        });
+    if (ImGui::MenuItem("Save Scene"))
+        run_operation([&] {
+            if (context_.scene_path().empty()) save_scene_as();
+            else
+                session_.save_scene();
+        });
     if (ImGui::MenuItem("Save Scene As...")) run_operation([&] { save_scene_as(); });
     ImGui::EndDisabled();
     ImGui::EndMenu();
@@ -111,19 +129,21 @@ void EditorLayer::draw_workspace() {
         draw_file_menu();
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Hierarchy", nullptr, &hierarchy_open_);
+            ImGui::MenuItem("Content", nullptr, &content_open_);
             ImGui::MenuItem("Inspector", nullptr, &inspector_open_);
             ImGui::MenuItem("Viewport", nullptr, &viewport_open_);
             ImGui::Separator();
             if (ImGui::MenuItem("Reset Layout")) {
                 reset_layout_ = true;
-                hierarchy_open_ = inspector_open_ = viewport_open_ = true;
+                hierarchy_open_ = content_open_ = inspector_open_ = viewport_open_ = true;
             }
             ImGui::EndMenu();
         }
         ImGui::Separator();
         if (context_.project()) {
             ImGui::TextUnformatted(context_.project()->name_.c_str());
-            ImGui::TextUnformatted(context_.scene_path().empty() ? " / Untitled scene" : path_to_utf8(context_.scene_path().filename()).c_str());
+            ImGui::TextUnformatted(
+                    context_.scene_path().empty() ? " / Untitled scene" : path_to_utf8(context_.scene_path().filename()).c_str());
             ImGui::Separator();
         }
         ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
@@ -140,7 +160,9 @@ void EditorLayer::draw_workspace() {
         ImGuiID center = dockspace;
         const ImGuiID left = ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.18f, nullptr, &center);
         const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.28f, nullptr, &center);
+        const ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25f, nullptr, &center);
         ImGui::DockBuilderDockWindow("Hierarchy", left);
+        ImGui::DockBuilderDockWindow("Content", bottom);
         ImGui::DockBuilderDockWindow("Inspector", right);
         ImGui::DockBuilderDockWindow("Viewport", center);
         ImGui::DockBuilderFinish(dockspace);
@@ -151,9 +173,15 @@ void EditorLayer::draw_workspace() {
 
 void EditorLayer::on_update(base::Timestep dt) {
     imgui_->begin_frame();
+    // Version one drops the whole cache on any import change and reloads lazily.
+    if (assets_.revision() != assets_revision_) {
+        asset_manager_->clear();
+        assets_revision_ = assets_.revision();
+    }
     draw_workspace();
     hierarchy_.draw(context_, hierarchy_open_);
-    inspector_.draw(context_, inspector_open_);
+    content_.draw(context_, assets_, content_open_);
+    inspector_.draw(context_, assets_, inspector_open_);
     viewport_.draw(viewport_open_, camera_.speed(), application().get_graphics_context().limits(), context_.has_scene());
     new_project_.draw();
     error_dialog_.draw();
@@ -211,8 +239,7 @@ void EditorLayer::on_render() {
         vulcal::scene::SceneExtractor::Options options;
         options.camera_override_ = camera_.data(static_cast<float>(target.width()) / static_cast<float>(target.height()));
         options.default_material_ = default_material_;
-        options.mesh_cache_ = mesh_cache_.get();
-        options.mesh_base_directory_ = context_.project()->root_directory();
+        options.assets_ = asset_manager_.get();
         renderer_->render(extractor_.extract(context_.scene(), options), &target);
     }
     vulcal::gfx::RenderTarget::unbind();
