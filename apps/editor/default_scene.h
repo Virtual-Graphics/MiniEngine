@@ -2,15 +2,15 @@
 
 #include <memory>
 
-namespace mini::render {
+namespace vulcal::render {
 class Renderer;
 }
-namespace mini::scene {
+namespace vulcal::scene {
 class Scene;
 }
 
 namespace editor {
 
-std::unique_ptr<mini::scene::Scene> create_default_scene(mini::render::Renderer& renderer);
+std::unique_ptr<vulcal::scene::Scene> create_default_scene(vulcal::render::Renderer& renderer);
 
 } // namespace editor

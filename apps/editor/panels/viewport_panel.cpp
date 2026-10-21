@@ -7,7 +7,7 @@
 
 namespace editor {
 
-void ViewportPanel::draw(bool& open, float camera_speed, const mini::gfx::Context::Limits& limits) {
+void ViewportPanel::draw(bool& open, float camera_speed, const vulcal::gfx::Context::Limits& limits) {
     visible_ = false;
     focused_ = false;
     camera_requested_ = false;
@@ -24,7 +24,7 @@ void ViewportPanel::draw(bool& open, float camera_speed, const mini::gfx::Contex
             const auto width = pixels(size.x * scale.x, limits.max_render_target_width);
             const auto height = pixels(size.y * scale.y, limits.max_render_target_height);
             if (!target_) {
-                target_ = std::make_unique<mini::gfx::RenderTarget>(mini::gfx::RenderTarget::Spec{ .width = width, .height = height });
+                target_ = std::make_unique<vulcal::gfx::RenderTarget>(vulcal::gfx::RenderTarget::Spec{ .width = width, .height = height });
             } else {
                 target_->resize(width, height);
             }

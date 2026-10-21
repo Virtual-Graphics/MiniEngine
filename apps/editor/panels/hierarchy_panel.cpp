@@ -9,12 +9,12 @@ namespace editor {
 void HierarchyPanel::draw(EditorContext& context, bool& open) const {
     if (!open) return;
     if (ImGui::Begin("Hierarchy", &open)) {
-        mini::scene::Entity pending_delete;
+        vulcal::scene::Entity pending_delete;
         bool create = false;
         bool over_entity = false;
         const auto selected = context.selected_entity();
-        context.scene().each<mini::scene::TagComponent>([&](mini::scene::Entity entity, const auto& tag) {
-            const auto id = entity.get_component<mini::scene::IDComponent>().id_.to_string();
+        context.scene().each<vulcal::scene::TagComponent>([&](vulcal::scene::Entity entity, const auto& tag) {
+            const auto id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
             ImGui::PushID(id.c_str());
             // A fixed hidden ID keeps duplicate names and names containing ## independent.
             if (ImGui::Selectable("##entity", entity == selected)) context.select(entity);

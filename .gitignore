@@ -6,6 +6,6 @@ projects/Library/
 build-gcc/
 build-gcc-release/
 imgui.ini
-mini_editor.ini
+vulcal_editor.ini
 docs/superpowers/
 log/

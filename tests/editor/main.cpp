@@ -11,16 +11,16 @@ namespace {
 TEST(EditorContext, SceneReplacementClearsSelectionBeforeOldSceneIsDestroyed) {
     editor::EditorContext context;
     context.create_entity();
-    auto replacement = std::make_unique<mini::scene::Scene>();
+    auto replacement = std::make_unique<vulcal::scene::Scene>();
     replacement->create_entity("Replacement");
     context.set_scene(std::move(replacement));
     EXPECT_FALSE(context.selected_entity());
-    EXPECT_EQ(context.scene().registry().view<mini::scene::TagComponent>().size(), 1u);
+    EXPECT_EQ(context.scene().registry().view<vulcal::scene::TagComponent>().size(), 1u);
 }
 
 TEST(EditorContext, RejectsSelectionFromAnotherScene) {
     editor::EditorContext context;
-    mini::scene::Scene other;
+    vulcal::scene::Scene other;
     EXPECT_THROW(context.select(other.create_entity()), std::invalid_argument);
     EXPECT_FALSE(context.selected_entity());
 }

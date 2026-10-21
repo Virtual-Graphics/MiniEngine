@@ -40,7 +40,7 @@ void EditorCamera::update(const Input& input, float seconds) {
     }
 }
 
-mini::render::CameraData EditorCamera::data(float aspect) const {
+vulcal::render::CameraData EditorCamera::data(float aspect) const {
     if (!std::isfinite(aspect) || aspect <= 0.0f) throw std::invalid_argument("Camera aspect must be positive and finite");
     return {
         .view_ = glm::lookAt(position_, position_ + forward(), glm::vec3{ 0.0f, 1.0f, 0.0f }),

@@ -23,11 +23,11 @@ void EditorLayer::on_attach() {
     imgui_ = std::make_unique<apps::ImGuiIntegration>(application().get_window());
     auto& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    io.IniFilename = "mini_editor.ini";
+    io.IniFilename = "vulcal_editor.ini";
     io.ConfigWindowsMoveFromTitleBarOnly = true;
-    renderer_ = std::make_unique<mini::render::Renderer>();
+    renderer_ = std::make_unique<vulcal::render::Renderer>();
     context_.set_scene(create_default_scene(*renderer_));
-    const auto entity_count = context_.scene().registry().view<mini::scene::TagComponent>().size();
+    const auto entity_count = context_.scene().registry().view<vulcal::scene::TagComponent>().size();
     base::log::info("Editor initialized with {} entities", entity_count);
 }
 
@@ -130,14 +130,14 @@ void EditorLayer::release_camera() {
 void EditorLayer::on_render() {
     if (viewport_.visible()) {
         auto& target = viewport_.target();
-        mini::scene::SceneExtractor::Options options;
+        vulcal::scene::SceneExtractor::Options options;
         options.camera_override_ = camera_.data(static_cast<float>(target.width()) / static_cast<float>(target.height()));
         renderer_->render(extractor_.extract(context_.scene(), options), &target);
     }
-    mini::gfx::RenderTarget::unbind();
+    vulcal::gfx::RenderTarget::unbind();
     const auto& window = application().get_window();
-    mini::gfx::Command::set_viewport(window.width(), window.height());
-    mini::gfx::Command::clear(glm::vec4{ 0.08f, 0.08f, 0.08f, 1.0f });
+    vulcal::gfx::Command::set_viewport(window.width(), window.height());
+    vulcal::gfx::Command::clear(glm::vec4{ 0.08f, 0.08f, 0.08f, 1.0f });
     imgui_->render();
 }
 

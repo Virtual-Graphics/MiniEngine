@@ -1,5 +1,3 @@
 add_subdirectory(common)
 add_subdirectory(editor)
 add_subdirectory(model_viewer)
-add_subdirectory(render_to_texture)
-add_subdirectory(texture_quad)
