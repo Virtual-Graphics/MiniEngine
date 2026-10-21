@@ -37,7 +37,7 @@ void field(YAML::Node node, const char* key, glm::vec<N, float>& value, bool loa
         if (!std::isfinite(value[i])) throw std::runtime_error(std::string("Non-finite vector: ") + key);
 }
 
-// Version 2's component schema is intentionally explicit and local to the editor.
+// Version 1's component schema is intentionally explicit and local to the editor.
 void fields(YAML::Node n, TransformComponent& c, bool load) {
     field(n, "translation", c.translation_, load);
     field(n, "rotation", c.rotation_, load);
@@ -138,7 +138,7 @@ void load_component(const YAML::Node& node, const char* key, Entity entity) {
 
 void SceneSerializer::save(const Scene& scene, const std::filesystem::path& path) {
     YAML::Node root;
-    root["format_version"] = 2;
+    root["format_version"] = 1;
     auto entities = root["entities"] = YAML::Node(YAML::NodeType::Sequence);
     std::unordered_set<std::uint64_t> ids;
     const auto& registry = scene.registry();
@@ -159,7 +159,7 @@ void SceneSerializer::save(const Scene& scene, const std::filesystem::path& path
 }
 
 std::unique_ptr<Scene> SceneSerializer::load(const std::filesystem::path& path) {
-    const auto root = yaml_io::read(path, 2);
+    const auto root = yaml_io::read(path, 1);
     const auto entities = root["entities"];
     if (!entities.IsSequence()) throw std::runtime_error("Scene entities must be a sequence");
     auto scene = std::make_unique<Scene>();

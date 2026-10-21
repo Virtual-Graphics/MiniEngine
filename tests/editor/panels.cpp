@@ -1,4 +1,4 @@
-#include "common/asset/asset_database.h"
+#include "common/asset/asset_index.h"
 #include "editor/app/editor_context.h"
 #include "editor/panels/hierarchy_panel.h"
 #include "editor/panels/inspector_panel.h"
@@ -68,7 +68,7 @@ protected:
     }
 
     editor::EditorContext context_;
-    vulcal::asset_pipeline::AssetDatabase assets_;
+    vulcal::asset_pipeline::AssetIndex assets_;
     editor::HierarchyPanel hierarchy_;
     editor::InspectorPanel inspector_;
     bool open_ = true;

@@ -1,7 +1,7 @@
 #include "editor/panels/inspector_panel.h"
 
 #include "asset/asset_id.h"
-#include "common/asset/asset_database.h"
+#include "common/asset/asset_index.h"
 #include "common/asset/material_file.h"
 #include "editor/app/editor_context.h"
 
@@ -11,7 +11,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 namespace editor {
-using vulcal::asset_pipeline::AssetDatabase;
+using vulcal::asset_pipeline::AssetIndex;
 using vulcal::asset_pipeline::AssetKind;
 using vulcal::asset_pipeline::AssetStatus;
 namespace {
@@ -126,7 +126,7 @@ void draw_light(vulcal::scene::LightComponent& light) {
 }
 
 template<typename ID>
-void asset_combo(const char* label, ID& id, const AssetDatabase& assets, AssetKind kind) {
+void asset_combo(const char* label, ID& id, const AssetIndex& assets, AssetKind kind) {
     const auto* current = assets.find(id.value_);
     const char* preview = current ? current->name_.c_str() : "None";
     if (!ImGui::BeginCombo(label, preview)) return;
@@ -143,62 +143,62 @@ void asset_combo(const char* label, ID& id, const AssetDatabase& assets, AssetKi
 
 } // namespace
 
-void InspectorPanel::draw(EditorContext& context, AssetDatabase& assets, bool& open) {
+void InspectorPanel::draw(EditorContext& context, AssetIndex& assets, bool& open) {
     if (!open) return;
     if (ImGui::Begin("Inspector", &open)) {
         const auto selected_asset = context.selected_asset();
-        if (!selected_asset.is_nil()) {
-            draw_asset(assets, selected_asset);
-            ImGui::End();
-            return;
-        }
-        editing_ = {};
-        draft_loaded_ = false;
-
-        const auto entity = context.selected_entity();
-        if (entity) {
-            // Selection is resolved each frame; no component pointer survives a scene change.
-            const auto entity_id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
-            ImGui::PushID(entity_id.c_str());
-            if (entity.has_component<vulcal::scene::TagComponent>()) {
-                ImGui::InputText("Name", &entity.get_component<vulcal::scene::TagComponent>().name_);
-            }
-            if (entity.has_component<vulcal::scene::IDComponent>()) {
-                const auto id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
-                ImGui::TextDisabled("UUID: %s", id.c_str());
-            }
-            if (entity.has_component<vulcal::scene::TransformComponent>())
-                draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
-            draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [&](auto& mesh) {
-                ImGui::Checkbox("Visible", &mesh.visible_);
-                asset_combo("Mesh", mesh.mesh_, assets, AssetKind::Mesh);
-                asset_combo("Material", mesh.material_, assets, AssetKind::Material);
-                ImGui::TextDisabled("Empty material uses the shared default material.");
-            });
-            draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);
-            draw_component<vulcal::scene::LightComponent>(entity, "Light", draw_light);
-            draw_component<vulcal::scene::EnvironmentComponent>(entity, "Environment", [](auto& environment) {
-                ImGui::ColorEdit3("Ambient", &environment.ambient_color_.x);
-                ImGui::ColorEdit3("Background", &environment.clear_color_.x);
-            });
-            ImGui::TextDisabled("Right-click optional component headers to remove.");
-            if (ImGui::Button("Add Component")) ImGui::OpenPopup("AddComponentMenu");
-            if (ImGui::BeginPopup("AddComponentMenu")) {
-                add_component_item<vulcal::scene::MeshRendererComponent>(context, entity, "Mesh Renderer");
-                add_component_item<vulcal::scene::CameraComponent>(context, entity, "Camera");
-                add_component_item<vulcal::scene::LightComponent>(context, entity, "Light", true);
-                add_component_item<vulcal::scene::EnvironmentComponent>(context, entity, "Environment", true);
-                ImGui::EndPopup();
-            }
-            ImGui::PopID();
-        } else {
-            ImGui::TextDisabled("Select an entity in Hierarchy or an asset in Content.");
-        }
+        if (!selected_asset.is_nil()) draw_asset(assets, selected_asset);
+        else
+            draw_components(context, assets, context.selected_entity());
     }
     ImGui::End();
 }
 
-void InspectorPanel::draw_asset(AssetDatabase& assets, base::UUID id) {
+void InspectorPanel::draw_components(EditorContext& context, AssetIndex& assets, vulcal::scene::Entity entity) {
+    editing_ = {};
+    draft_loaded_ = false;
+
+    if (entity) {
+        // Selection is resolved each frame; no component pointer survives a scene change.
+        const auto entity_id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
+        ImGui::PushID(entity_id.c_str());
+        if (entity.has_component<vulcal::scene::TagComponent>()) {
+            ImGui::InputText("Name", &entity.get_component<vulcal::scene::TagComponent>().name_);
+        }
+        if (entity.has_component<vulcal::scene::IDComponent>()) {
+            const auto id = entity.get_component<vulcal::scene::IDComponent>().id_.to_string();
+            ImGui::TextDisabled("UUID: %s", id.c_str());
+        }
+        if (entity.has_component<vulcal::scene::TransformComponent>())
+            draw_transform(entity.get_component<vulcal::scene::TransformComponent>());
+        draw_component<vulcal::scene::MeshRendererComponent>(entity, "Mesh Renderer", [&](auto& mesh) {
+            ImGui::Checkbox("Visible", &mesh.visible_);
+            asset_combo("Mesh", mesh.mesh_, assets, AssetKind::Mesh);
+            asset_combo("Material", mesh.material_, assets, AssetKind::Material);
+            ImGui::TextDisabled("Empty material uses the shared default material.");
+        });
+        draw_component<vulcal::scene::CameraComponent>(entity, "Camera", draw_camera);
+        draw_component<vulcal::scene::LightComponent>(entity, "Light", draw_light);
+        draw_component<vulcal::scene::EnvironmentComponent>(entity, "Environment", [](auto& environment) {
+            ImGui::ColorEdit3("Ambient", &environment.ambient_color_.x);
+            ImGui::ColorEdit3("Background", &environment.clear_color_.x);
+        });
+        ImGui::TextDisabled("Right-click optional component headers to remove.");
+        if (ImGui::Button("Add Component")) ImGui::OpenPopup("AddComponentMenu");
+        if (ImGui::BeginPopup("AddComponentMenu")) {
+            add_component_item<vulcal::scene::MeshRendererComponent>(context, entity, "Mesh Renderer");
+            add_component_item<vulcal::scene::CameraComponent>(context, entity, "Camera");
+            add_component_item<vulcal::scene::LightComponent>(context, entity, "Light", true);
+            add_component_item<vulcal::scene::EnvironmentComponent>(context, entity, "Environment", true);
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+    } else {
+        ImGui::TextDisabled("Select an entity in Hierarchy or an asset in Content.");
+    }
+}
+
+void InspectorPanel::draw_asset(AssetIndex& assets, base::UUID id) {
     const auto* record = assets.find(id);
     if (!record) {
         editing_ = {};

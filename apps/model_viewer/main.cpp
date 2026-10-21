@@ -122,7 +122,7 @@ public:
     }
 
     void on_render() override {
-        // The viewer has no project or AssetDatabase; it appends its mesh directly.
+        // The viewer has no project or AssetIndex; it appends its mesh directly.
         vulcal::scene::SceneExtractor::Options options;
         auto data = extractor_.extract(*scene_, options);
         const auto& transform = model_entity_.get_component<vulcal::scene::TransformComponent>();

@@ -72,7 +72,7 @@ importer: obj
 
 具体导入选项确定后，再加入 `import_settings`。
 
-源路径由源文件和 `.meta` 的位置确定；导入状态和错误信息由 AssetDatabase 记录和展示；缓存路径由 ID 和类型推导。第一版不在 `.meta` 中保存这些派生信息，也不增加时间戳、内容哈希或依赖列表。
+源路径由源文件和 `.meta` 的位置确定；导入状态和错误信息由 AssetIndex 记录和展示；缓存路径由 ID 和类型推导。第一版不在 `.meta` 中保存这些派生信息，也不增加时间戳、内容哈希或依赖列表。
 
 ## 导入与重新导入
 
@@ -109,12 +109,12 @@ Mesh 和 Material 都生成简单的二进制缓存，Runtime 统一读取这些
 | --- | --- | --- |
 | AssetID | Core | 表达持久化资源身份 |
 | 源文件解析与缓存生成 | 外部导入模块 | 解析 OBJ、读取材质 YAML、生成导入缓存，供 Editor 和 Model Viewer 共用 |
-| AssetDatabase | APPS | 扫描 Asset 目录、维护 `.meta`，在内存记录 ID、资源类型、源路径和导入状态 |
+| AssetIndex | APPS | 扫描 Asset 目录、维护 `.meta`，在内存记录 ID、资源类型、源路径和导入状态 |
 | AssetManager | Core | 根据 ID 读取缓存，创建并缓存 Renderer 句柄，管理缓存失效和释放 |
 | Renderer | Core | 持有实际 GPU 资源，提供创建、使用和销毁接口 |
 | Content、Inspector 的资源操作 | Editor | 浏览资源、创建与编辑材质、给实体赋值、触发导入 |
 
-外部导入模块独立于 Editor，避免 Model Viewer 为解析模型而依赖编辑器 UI、项目会话或 AssetDatabase。第一版按实际类型调用具体导入函数即可。
+外部导入模块独立于 Editor，避免 Model Viewer 为解析模型而依赖编辑器 UI、项目会话或 AssetIndex。第一版按实际类型调用具体导入函数即可。
 
 现有 `vulcal_engine/asset/` 中的 OBJ、图片源文件 loader 移出 Core，相关源格式解析依赖也移到外部。图片 loader 的迁移不代表本轮增加 Texture Pipeline。MeshData、运行时缓存读取和渲染资源数据仍属于 Core。
 
@@ -147,7 +147,7 @@ SceneExtractor 通过 AssetManager 将 ID 解析为 MeshHandle 和 MaterialHandl
 - material_file.h/.cpp，读写 `.vmat` YAML
 - obj_importer.h/.cpp
 - material_importer.h/.cpp
-- asset_database.h/.cpp，只接收路径，不依赖 Editor
+- asset_index.h/.cpp，只接收路径，不依赖 Editor
 - 其他需要的模块
 
 第一版不抽象 loader / importer 接口，按具体资源类型直接调用。
@@ -175,7 +175,7 @@ Hierarchy 与 Content 共用 Inspector，通过当前选择决定显示内容：
 
 Model Viewer 保持独立的渲染预览工具定位，继续接受 `model_viewer.exe <path-to-model.obj>`，给定源模型即可展示渲染器效果。未来再增加 GLB、glTF、FBX 等输入格式。
 
-它复用外部导入模块中的源文件解析步骤，在内存中得到 MeshData 后直接交给 Renderer，自行管理预览所需的网格、材质和场景。该流程不要求创建项目、生成 `.meta`、建立 AssetDatabase 或写入磁盘导入缓存。
+它复用外部导入模块中的源文件解析步骤，在内存中得到 MeshData 后直接交给 Renderer，自行管理预览所需的网格、材质和场景。该流程不要求创建项目、生成 `.meta`、建立 AssetIndex 或写入磁盘导入缓存。
 
 Editor 则在源文件解析后继续生成缓存，再通过 Core AssetManager 加载。两条流程共享解析代码，各自保留所需的后续处理。
 
@@ -206,6 +206,6 @@ Editor 则在源文件解析后继续生成缓存，再通过 Core AssetManager 
 - 删除 `.vulcal_engine` 后重新打开项目，可以从源文件重新生成缓存并恢复渲染。
 - 手动 Reimport 能更新显示；导入失败时报告错误并保留原有可用缓存。
 - Model Viewer 可以在没有项目的情况下预览 OBJ。
-- Core 可以独立构建，运行时加载不依赖源文件解析器、YAML、Editor 或 AssetDatabase。
+- Core 可以独立构建，运行时加载不依赖源文件解析器、YAML、Editor 或 AssetIndex。
 
-场景格式升级为 v2，Mesh / Material 保存十进制 AssetID。v1 不提供迁移代码，打开时报告格式不兼容；sandbox 场景已手动转换。
+场景继续使用 `format_version: 1`。在 v1.0.0 之前格式不承诺兼容；Mesh / Material 字段改为十进制 AssetID 后，旧的路径式场景直接报错，不提供迁移，sandbox 场景已手动转换。

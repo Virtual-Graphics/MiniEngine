@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/asset/asset_database.h"
+#include "common/asset/asset_index.h"
 #include "editor/app/editor_context.h"
 #include "editor/dialogs/dialog.h"
 #include "editor/dialogs/new_project_dialog.h"
@@ -53,7 +53,7 @@ private:
     std::unique_ptr<class NativeFileDialog> file_dialogs_;
     vulcal::render::MaterialHandle default_material_;
     EditorContext context_;
-    vulcal::asset_pipeline::AssetDatabase assets_;
+    vulcal::asset_pipeline::AssetIndex assets_;
     ProjectSession session_{ context_ };
     NewProjectDialog new_project_;
     MessageDialog error_dialog_;

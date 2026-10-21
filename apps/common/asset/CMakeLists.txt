@@ -1,8 +1,8 @@
 include(${PROJECT_SOURCE_DIR}/cmake/third_party_yaml.cmake)
 
 add_library(vulcal_app_asset STATIC
-    asset_database.cpp
-    asset_database.h
+    asset_index.cpp
+    asset_index.h
     image_loader.cpp
     image_loader.h
     material_file.cpp

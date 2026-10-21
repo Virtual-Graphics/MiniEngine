@@ -6,7 +6,10 @@
 #include <string>
 
 namespace vulcal::asset_pipeline {
-class AssetDatabase;
+class AssetIndex;
+}
+namespace vulcal::scene {
+class Entity;
 }
 
 namespace editor {
@@ -15,10 +18,11 @@ class EditorContext;
 
 class InspectorPanel {
 public:
-    void draw(EditorContext& context, vulcal::asset_pipeline::AssetDatabase& assets, bool& open);
+    void draw(EditorContext& context, vulcal::asset_pipeline::AssetIndex& assets, bool& open);
 
 private:
-    void draw_asset(vulcal::asset_pipeline::AssetDatabase& assets, base::UUID id);
+    void draw_components(EditorContext& context, vulcal::asset_pipeline::AssetIndex& assets, vulcal::scene::Entity entity);
+    void draw_asset(vulcal::asset_pipeline::AssetIndex& assets, base::UUID id);
 
     base::UUID editing_;
     vulcal::render::Material draft_;

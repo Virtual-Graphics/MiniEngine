@@ -1,6 +1,6 @@
 #include "asset/material_bin.h"
 #include "asset/mesh_bin.h"
-#include "common/asset/asset_database.h"
+#include "common/asset/asset_index.h"
 #include "common/asset/obj_loader.h"
 #include "editor/app/editor_context.h"
 #include "editor/project/project_session.h"
@@ -196,11 +196,11 @@ TEST_F(Persistence, RejectsMalformedScenesAndDuplicateIds) {
     const auto path = root_ / "bad.vscene";
     std::ofstream(path) << "format_version: 1\nentities: broken\n";
     EXPECT_THROW(editor::SceneSerializer::load(path), std::exception);
-    std::ofstream(path) << "format_version: 2\nentities:\n"
+    std::ofstream(path) << "format_version: 1\nentities:\n"
                            "  - {id: 1, name: First, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}}\n"
                            "  - {id: 1, name: Second, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}}\n";
     EXPECT_THROW(editor::SceneSerializer::load(path), std::exception);
-    std::ofstream(path) << "format_version: 2\nentities:\n"
+    std::ofstream(path) << "format_version: 1\nentities:\n"
                            "  - {id: 1, name: Bad, transform: {translation: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]},"
                            " mesh_renderer: {mesh: not-an-id, material: '', visible: true}}\n";
     EXPECT_THROW(editor::SceneSerializer::load(path), std::exception);
@@ -313,12 +313,12 @@ TEST_F(Persistence, UnicodeProjectSceneAndObjPathsWork) {
     EXPECT_EQ(vulcal::asset_pipeline::load_obj(mesh_path, error)->indices_.size(), 3u);
 }
 
-TEST_F(Persistence, AssetDatabaseCreatesMetaAndMeshCache) {
+TEST_F(Persistence, AssetIndexCreatesMetaAndMeshCache) {
     session_.create_project(root_, "Demo");
     const auto source = root_ / "assets/bunny.obj";
     std::ofstream(source) << "v 0 0 0\nv 1 0 0\nv 0 1 0\nvn 0 0 1\nf 1//1 2//1 3//1\n";
 
-    vulcal::asset_pipeline::AssetDatabase assets;
+    vulcal::asset_pipeline::AssetIndex assets;
     const auto& project = *context_.project();
     assets.set_roots(project.resolve(project.asset_directory_), project.root_directory() / ".vulcal_engine");
     ASSERT_EQ(assets.records().size(), 1u);
@@ -337,7 +337,7 @@ TEST_F(Persistence, AssetDatabaseCreatesMetaAndMeshCache) {
     const auto meta = editor::path_from_utf8(editor::path_to_utf8(source) + ".meta");
     const auto original_id = record.id_;
     {
-        std::ofstream(meta) << "format_version: 1\nid: \"" << original_id.value() << "\"\n";
+        std::ofstream(meta) << "format_version: 1\nid: \"" << original_id.value() << "\"\nimporter: obj\n";
     }
     assets.rescan();
     ASSERT_EQ(assets.records().size(), 1u);
@@ -350,9 +350,9 @@ TEST_F(Persistence, AssetDatabaseCreatesMetaAndMeshCache) {
     EXPECT_TRUE(fs::exists(assets.records().front().cache_path_));
 }
 
-TEST_F(Persistence, AssetDatabaseCreatesMaterialAndReportsDuplicateIds) {
+TEST_F(Persistence, AssetIndexCreatesMaterialAndReportsDuplicateIds) {
     session_.create_project(root_, "Demo");
-    vulcal::asset_pipeline::AssetDatabase assets;
+    vulcal::asset_pipeline::AssetIndex assets;
     const auto& project = *context_.project();
     assets.set_roots(project.resolve(project.asset_directory_), project.root_directory() / ".vulcal_engine");
 

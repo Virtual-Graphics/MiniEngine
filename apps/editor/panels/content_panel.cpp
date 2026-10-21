@@ -1,17 +1,17 @@
 #include "editor/panels/content_panel.h"
 
-#include "common/asset/asset_database.h"
+#include "common/asset/asset_index.h"
 #include "editor/app/editor_context.h"
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 
 namespace editor {
-using vulcal::asset_pipeline::AssetDatabase;
+using vulcal::asset_pipeline::AssetIndex;
 using vulcal::asset_pipeline::AssetKind;
 using vulcal::asset_pipeline::AssetStatus;
 
-void ContentPanel::draw(EditorContext& context, AssetDatabase& assets, bool& open) {
+void ContentPanel::draw(EditorContext& context, AssetIndex& assets, bool& open) {
     if (!open) return;
     if (ImGui::Begin("Content", &open)) {
         if (!context.project()) {

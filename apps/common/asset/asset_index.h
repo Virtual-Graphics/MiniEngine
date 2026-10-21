@@ -12,6 +12,13 @@ namespace vulcal::asset_pipeline {
 enum class AssetKind { Mesh, Material };
 enum class AssetStatus { Ready, Failed };
 
+// Persisted .meta payload. Extend this struct instead of adding parallel fields
+// to the YAML reader and writer.
+struct AssetMetaInfo {
+    base::UUID id_;
+    AssetKind kind_ = AssetKind::Mesh;
+};
+
 struct AssetRecord {
     base::UUID id_;
     AssetKind kind_ = AssetKind::Mesh;
@@ -24,7 +31,7 @@ struct AssetRecord {
 
 // Project-side view of the Asset directory: maintains .meta files, generates missing
 // import caches and remembers per-asset errors. It only knows paths, not Editor state.
-class AssetDatabase {
+class AssetIndex {
 public:
     void set_roots(std::filesystem::path asset_root, std::filesystem::path cache_root);
     // Discovers supported sources, creates missing .meta files and caches.
