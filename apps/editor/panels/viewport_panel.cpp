@@ -1,5 +1,5 @@
 #include "editor/panels/viewport_panel.h"
-#include "common/imgui_render_target.h"
+#include "common/imgui/imgui_render_target.h"
 
 #include <algorithm>
 #include <cmath>

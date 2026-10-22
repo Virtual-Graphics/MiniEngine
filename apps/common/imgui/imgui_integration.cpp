@@ -1,4 +1,4 @@
-#include "common/imgui_integration.h"
+#include "common/imgui/imgui_integration.h"
 
 #include "base/window.h"
 #include "gfx/command.h"

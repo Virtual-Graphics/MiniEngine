@@ -8,7 +8,10 @@
 #include "engine/layer.h"
 #include "scene/scene_extractor.h"
 
+#include <filesystem>
+#include <functional>
 #include <memory>
+#include <string>
 
 namespace apps {
 class ImGuiIntegration;
@@ -31,6 +34,14 @@ public:
 
 private:
     void draw_workspace();
+    void draw_file_menu();
+    void draw_new_project_dialog();
+    void draw_error_dialog();
+    void new_scene();
+    void open_scene();
+    void save_scene();
+    void save_scene_as();
+    void run_operation(const std::function<void()>& operation);
     void update_camera(base::Timestep dt);
     void release_camera();
 
@@ -49,6 +60,14 @@ private:
     bool controlling_camera_ = false;
     float saved_mouse_x_ = 0.0f;
     float saved_mouse_y_ = 0.0f;
+
+    bool new_project_requested_ = false;
+    std::string new_project_name_;
+    std::filesystem::path new_project_directory_;
+    std::string new_project_error_;
+
+    bool error_requested_ = false;
+    std::string error_message_;
 };
 
 } // namespace editor

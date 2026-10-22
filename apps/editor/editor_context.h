@@ -1,17 +1,29 @@
 #pragma once
 
+#include "editor/project/project_manager.h"
 #include "scene/scene.h"
 
+#include <filesystem>
 #include <memory>
 
 namespace editor {
 
-// Shared document and selection state. Panels never own references to an old scene.
+// Shared document and selection state. The current scene is owned by
+// ProjectManager; panels never keep references to an old scene.
 class EditorContext {
 public:
-    vulcal::scene::Scene& scene() { return *scene_; }
-    const vulcal::scene::Scene& scene() const { return *scene_; }
+    bool has_scene() const { return project_manager_.has_scene(); }
+
+    vulcal::scene::Scene& scene();
+    const vulcal::scene::Scene& scene() const;
+
     void set_scene(std::unique_ptr<vulcal::scene::Scene> scene);
+    void open_scene(const std::filesystem::path& scene_file);
+    void save_scene();
+    void save_scene_as(const std::filesystem::path& scene_file);
+
+    ProjectManager& project_manager() { return project_manager_; }
+    const ProjectManager& project_manager() const { return project_manager_; }
 
     vulcal::scene::Entity selected_entity() const;
     void select(vulcal::scene::Entity entity);
@@ -19,7 +31,7 @@ public:
     void destroy_entity(vulcal::scene::Entity entity);
 
 private:
-    std::unique_ptr<vulcal::scene::Scene> scene_ = std::make_unique<vulcal::scene::Scene>();
+    ProjectManager& project_manager_ = ProjectManager::instance();
     vulcal::scene::Entity selected_;
 };
 
