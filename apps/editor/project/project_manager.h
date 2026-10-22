@@ -1,40 +1,54 @@
 #pragma once
 #include "editor/project/project.h"
-#include "base/logger.h"
+
+#include <filesystem>
+#include <memory>
+
+namespace vulcal::scene {
+class Scene;
+}
+
 namespace editor {
 
-// temporary place for all functions. Eventually some of these might be moved to other classes
+// Temporary place for all project related functions. Eventually some of these
+// might be moved to other classes.
 class ProjectManager {
 public:
-    static ProjectManager& instance(){
-        static ProjectManager instance;
-        return instance;
-    }
+    static ProjectManager& instance();
 
-    void open_project(const std::filesystem::path& project_file) {
-        ProjectInfo info;
-        if (!load_project_info(project_file, info)) {
-            base::log::error("Failed to load project info from {} ", project_file.string());
-            throw std::runtime_error("Failed to load project info from " + project_file.string());
-        }
-        current_project_dir_ = project_file;
-        current_project_info_ = info;
-    }
+    ProjectManager(const ProjectManager&) = delete;
+    ProjectManager& operator=(const ProjectManager&) = delete;
+    ~ProjectManager();
 
-    void save_project(const std::filesystem::path& project_file) {
-        if (!save_project_info(project_file, current_project_info_)) {
-            base::log::error("Failed to save project info to {} ", project_file.string());
-            throw std::runtime_error("Failed to save project info to " + project_file.string());
-        }
-        current_project_dir_ = project_file;
-    }
+    bool has_project() const;
+    void create_project(const std::filesystem::path& directory, const std::string& name);
+    void open_project(const std::filesystem::path& project_file);
+    void save_project(const std::filesystem::path& project_file);
+    void save_project();
 
-    std::filesystem::path current_project_dir() const { return current_project_dir_.parent_path(); };
-    const ProjectInfo&    current_project_info() const { return current_project_info_; };
+    bool has_scene() const;
+    void set_scene(std::unique_ptr<vulcal::scene::Scene> scene);
+    void open_scene(const std::filesystem::path& scene_file);
+    void save_scene(const std::filesystem::path& scene_file);
+    void save_scene();
+    void save_as_scene(const std::filesystem::path& scene_file);
+    void close_scene();
+
+    std::filesystem::path current_project_file() const;
+    std::filesystem::path current_project_dir() const;
+    const ProjectInfo& current_project_info() const;
+    std::filesystem::path current_scene_file() const;
+
+    vulcal::scene::Scene* current_scene();
+    const vulcal::scene::Scene* current_scene() const;
+
 private:
-    ProjectManager() = default;
-    std::filesystem::path current_project_dir_;
+    ProjectManager();
+
+    std::filesystem::path current_project_file_;
     ProjectInfo current_project_info_;
+    std::filesystem::path current_scene_file_;
+    std::unique_ptr<vulcal::scene::Scene> opened_scene_;
 };
 
-}
+} // namespace editor

@@ -8,8 +8,16 @@
 
 namespace {
 
+TEST(EditorContext, StartsWithoutSceneAndRejectsEntityCreation) {
+    editor::EditorContext context;
+    EXPECT_FALSE(context.has_scene());
+    EXPECT_FALSE(context.selected_entity());
+    EXPECT_THROW(context.create_entity(), std::logic_error);
+}
+
 TEST(EditorContext, SceneReplacementClearsSelectionBeforeOldSceneIsDestroyed) {
     editor::EditorContext context;
+    context.set_scene(std::make_unique<vulcal::scene::Scene>());
     context.create_entity();
     auto replacement = std::make_unique<vulcal::scene::Scene>();
     replacement->create_entity("Replacement");
@@ -27,6 +35,7 @@ TEST(EditorContext, RejectsSelectionFromAnotherScene) {
 
 TEST(EditorContext, DeletingSelectedEntityClearsSelection) {
     editor::EditorContext context;
+    context.set_scene(std::make_unique<vulcal::scene::Scene>());
     auto selected = context.create_entity();
     context.destroy_entity(selected);
     EXPECT_FALSE(selected);
@@ -35,6 +44,7 @@ TEST(EditorContext, DeletingSelectedEntityClearsSelection) {
 
 TEST(EditorContext, DeletingOtherEntityPreservesSelection) {
     editor::EditorContext context;
+    context.set_scene(std::make_unique<vulcal::scene::Scene>());
     auto other = context.create_entity();
     auto selected = context.create_entity();
     context.destroy_entity(other);
@@ -43,6 +53,7 @@ TEST(EditorContext, DeletingOtherEntityPreservesSelection) {
 
 TEST(EditorContext, ExternalDeletionDoesNotSelectRecycledHandle) {
     editor::EditorContext context;
+    context.set_scene(std::make_unique<vulcal::scene::Scene>());
     auto selected = context.create_entity();
     context.scene().destroy_entity(selected);
     context.scene().create_entity("New entity");
@@ -51,6 +62,7 @@ TEST(EditorContext, ExternalDeletionDoesNotSelectRecycledHandle) {
 
 TEST(EditorContext, NullSceneReplacementPreservesExistingSceneAndSelection) {
     editor::EditorContext context;
+    context.set_scene(std::make_unique<vulcal::scene::Scene>());
     auto selected = context.create_entity();
     EXPECT_THROW(context.set_scene(nullptr), std::invalid_argument);
     EXPECT_EQ(context.selected_entity(), selected);

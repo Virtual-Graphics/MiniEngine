@@ -1,0 +1,48 @@
+format_version: 1
+entities:
+  - id: 2971036953416869891
+    name: Environment
+    transform:
+      translation: [0, 0, 0]
+      rotation: [0, 0, 0]
+      scale: [1, 1, 1]
+    environment:
+      ambient_color: [0.176470593, 0.149019614, 0.149019614]
+      clear_color: [0.356862754, 0.0901960805, 0.109803922, 1]
+  - id: 12302446532940829342
+    name: Camera
+    transform:
+      translation: [-0, 4, 8]
+      rotation: [-0.512389481, 0, 0]
+      scale: [1, 1, 1]
+    camera:
+      projection: perspective
+      primary: true
+      perspective_fov_y: 0.785398185
+      perspective_aspect: 1
+      perspective_near: 0.100000001
+      perspective_far: 100
+      orthographic_left: -1
+      orthographic_right: 1
+      orthographic_bottom: -1
+      orthographic_top: 1
+      orthographic_near: 0.100000001
+      orthographic_far: 100
+  - id: 13357824475731343727
+    name: Sun
+    transform:
+      translation: [0, 0, 0]
+      rotation: [-0.615479648, 0.785398066, 2.10734239e-08]
+      scale: [1, 1, 1]
+    light:
+      type: directional
+      color: [1, 1, 1]
+      intensity: 1
+      shadow_enabled: true
+      shadow_map_size: 2048
+      shadow_center: [0, -0.5, 0]
+      shadow_extent: 8
+      shadow_near: 0.100000001
+      shadow_far: 40
+      shadow_depth_bias: 0.00150000001
+      shadow_normal_bias: 0.0199999996

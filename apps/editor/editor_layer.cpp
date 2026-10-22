@@ -2,7 +2,8 @@
 
 #include "base/input.h"
 #include "base/logger.h"
-#include "common/imgui_integration.h"
+#include "common/imgui/imgui_integration.h"
+#include "common/nfd/file_dialog.h"
 #include "editor/default_scene.h"
 #include "engine/application.h"
 #include "gfx/command.h"
@@ -11,8 +12,20 @@
 #include <SDL3/SDL.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
 
 namespace editor {
+namespace {
+
+const apps::nfd::FileFilter project_filter{ "Vulcal Project", "vproj" };
+const apps::nfd::FileFilter scene_filter{ "Vulcal Scene", "vscene" };
+
+std::string to_utf8(const std::filesystem::path& path) {
+    const auto text = path.u8string();
+    return std::string(reinterpret_cast<const char*>(text.data()), text.size());
+}
+
+} // namespace
 
 EditorLayer::EditorLayer()
         : engine::Layer("EditorLayer") {}
@@ -26,7 +39,7 @@ void EditorLayer::on_attach() {
     io.IniFilename = "vulcal_editor.ini";
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     renderer_ = std::make_unique<vulcal::render::Renderer>();
-    context_.set_scene(create_default_scene(*renderer_));
+    context_.set_scene(create_default_scene());
     const auto entity_count = context_.scene().registry().view<vulcal::scene::TagComponent>().size();
     base::log::info("Editor initialized with {} entities", entity_count);
 }
@@ -36,8 +49,155 @@ void EditorLayer::on_detach() {
     imgui_.reset();
 }
 
+void EditorLayer::run_operation(const std::function<void()>& operation) {
+    release_camera();
+    try {
+        operation();
+    } catch (const std::exception& error) {
+        base::log::error("Editor operation failed: {}", error.what());
+        error_message_ = error.what();
+        error_requested_ = true;
+    }
+}
+
+void EditorLayer::new_scene() { context_.set_scene(create_default_scene()); }
+
+void EditorLayer::open_scene() {
+    auto directory = context_.project_manager().current_scene_file().parent_path();
+    if (directory.empty()) directory = context_.project_manager().current_project_dir();
+    if (directory.empty()) directory = std::filesystem::current_path();
+
+    if (auto path = apps::nfd::open_file(scene_filter, directory)) context_.open_scene(*path);
+}
+
+void EditorLayer::save_scene() {
+    if (context_.project_manager().current_scene_file().empty()) {
+        save_scene_as();
+        return;
+    }
+    context_.save_scene();
+}
+
+void EditorLayer::save_scene_as() {
+    const auto& manager = context_.project_manager();
+
+    auto directory = manager.current_scene_file().parent_path();
+    if (directory.empty()) directory = manager.current_project_dir();
+    if (directory.empty()) directory = std::filesystem::current_path();
+
+    const auto name = manager.current_scene_file().empty() ? std::filesystem::path{ "Untitled.vscene" } : manager.current_scene_file().filename();
+    if (auto path = apps::nfd::save_file(scene_filter, directory, name)) {
+        if (path->extension() != ".vscene") path->replace_extension(".vscene");
+        context_.save_scene_as(*path);
+    }
+}
+
+void EditorLayer::draw_file_menu() {
+    if (!ImGui::BeginMenu("File")) return;
+
+    if (ImGui::MenuItem("New Project...")) {
+        release_camera();
+        new_project_name_.clear();
+        new_project_directory_ = std::filesystem::current_path();
+        new_project_error_.clear();
+        new_project_requested_ = true;
+    }
+    if (ImGui::MenuItem("Open Project...")) {
+        run_operation([this] {
+            if (auto path = apps::nfd::open_file(project_filter)) {
+                context_.project_manager().open_project(*path);
+                context_.set_scene(create_default_scene());
+            }
+        });
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::MenuItem("New Scene")) run_operation([this] { new_scene(); });
+    if (ImGui::MenuItem("Open Scene...")) run_operation([this] { open_scene(); });
+
+    ImGui::BeginDisabled(!context_.has_scene());
+    if (ImGui::MenuItem("Save Scene")) run_operation([this] { save_scene(); });
+    if (ImGui::MenuItem("Save Scene As...")) run_operation([this] { save_scene_as(); });
+    ImGui::EndDisabled();
+
+    ImGui::EndMenu();
+}
+
+void EditorLayer::draw_new_project_dialog() {
+    if (new_project_requested_) {
+        ImGui::OpenPopup("New Project");
+        new_project_requested_ = false;
+    }
+
+    const auto center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5f, 0.5f });
+    if (!ImGui::BeginPopupModal("New Project", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+
+    ImGui::SetNextItemWidth(360.0f);
+    ImGui::InputText("Project name", &new_project_name_);
+    ImGui::TextUnformatted("Project directory");
+    ImGui::TextWrapped("%s", new_project_directory_.empty() ? "Choose an existing directory" : to_utf8(new_project_directory_).c_str());
+    if (ImGui::Button("Browse...")) {
+        try {
+            if (auto path = apps::nfd::pick_folder(new_project_directory_)) {
+                new_project_directory_ = *path;
+                if (new_project_name_.empty()) new_project_name_ = to_utf8(new_project_directory_.filename());
+            }
+        } catch (const std::exception& error) {
+            new_project_error_ = error.what();
+        }
+    }
+
+    if (!new_project_error_.empty()) {
+        ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 440.0f);
+        ImGui::TextColored({ 1.0f, 0.4f, 0.3f, 1.0f }, "%s", new_project_error_.c_str());
+        ImGui::PopTextWrapPos();
+    }
+
+    const bool can_create = !new_project_name_.empty() && !new_project_directory_.empty();
+    ImGui::BeginDisabled(!can_create);
+    if (ImGui::Button("Create")) {
+        try {
+            context_.project_manager().create_project(new_project_directory_, new_project_name_);
+            context_.set_scene(create_default_scene());
+            new_project_error_.clear();
+            ImGui::CloseCurrentPopup();
+        } catch (const std::exception& error) {
+            new_project_error_ = error.what();
+        }
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+        new_project_error_.clear();
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+}
+
+void EditorLayer::draw_error_dialog() {
+    if (error_requested_) {
+        ImGui::OpenPopup("Operation Failed");
+        error_requested_ = false;
+    }
+
+    const auto center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, { 0.5f, 0.5f });
+    if (!ImGui::BeginPopupModal("Operation Failed", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) return;
+
+    ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 480.0f);
+    ImGui::TextUnformatted(error_message_.c_str());
+    ImGui::PopTextWrapPos();
+    if (ImGui::Button("OK")) ImGui::CloseCurrentPopup();
+
+    ImGui::EndPopup();
+}
+
 void EditorLayer::draw_workspace() {
     if (ImGui::BeginMainMenuBar()) {
+        draw_file_menu();
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Hierarchy", nullptr, &hierarchy_open_);
             ImGui::MenuItem("Inspector", nullptr, &inspector_open_);
@@ -79,6 +239,8 @@ void EditorLayer::on_update(base::Timestep dt) {
     hierarchy_.draw(context_, hierarchy_open_);
     inspector_.draw(context_, inspector_open_);
     viewport_.draw(viewport_open_, camera_.speed(), application().get_graphics_context().limits());
+    draw_new_project_dialog();
+    draw_error_dialog();
     update_camera(dt);
     imgui_->end_frame();
 }

@@ -1,5 +1,5 @@
 #include "asset/obj_loader.h"
-#include "common/imgui_integration.h"
+#include "common/imgui/imgui_integration.h"
 #include "engine/application.h"
 #include "engine/layer.h"
 #include "render/renderer.h"
@@ -15,16 +15,24 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <imgui.h>
+#include <iostream>
 #include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 class ModelViewerLayer : public engine::Layer {
 public:
-    ModelViewerLayer()
-            : engine::Layer("ModelViewerLayer") {}
+    explicit ModelViewerLayer(std::filesystem::path model_path)
+            : engine::Layer("ModelViewerLayer"),
+              model_path_(std::move(model_path)) {}
 
     void on_attach() override {
-        const std::filesystem::path assets_dir = ASSETS_DIR;
-        const vulcal::MeshData mesh_data = vulcal::asset::OBJImporter::load_obj(assets_dir / "StanfordBunny.obj");
+        const vulcal::MeshData mesh_data = vulcal::asset::OBJImporter::load_obj(model_path_);
+        if (mesh_data.vertices_.empty() || mesh_data.indices_.empty()) {
+            throw std::runtime_error("Failed to load model: " + model_path_.string());
+        }
+        model_name_ = model_path_.filename().string();
         vertex_count_ = mesh_data.vertices_.size();
         triangle_count_ = mesh_data.indices_.size() / 3;
 
@@ -57,13 +65,13 @@ public:
 
         scene_ = std::make_unique<vulcal::scene::Scene>();
 
-        bunny_entity_ = scene_->create_entity("Bunny");
-        auto& bunny_transform = bunny_entity_.get_component<vulcal::scene::TransformComponent>();
-        bunny_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
-        bunny_transform.scale_ = glm::vec3{ 15.0f };
-        auto& bunny_renderer = bunny_entity_.add_component<vulcal::scene::MeshRendererComponent>();
-        bunny_renderer.mesh_ = mesh;
-        bunny_renderer.material_ = material_handle;
+        model_entity_ = scene_->create_entity("Model");
+        auto& model_transform = model_entity_.get_component<vulcal::scene::TransformComponent>();
+        model_transform.translation_ = glm::vec3{ 0.0f, -1.0f, 0.0f };
+        model_transform.scale_ = glm::vec3{ 15.0f };
+        auto& model_renderer = model_entity_.add_component<vulcal::scene::MeshRendererComponent>();
+        model_renderer.mesh_ = mesh;
+        model_renderer.material_ = material_handle;
 
         auto ground_entity = scene_->create_entity("Ground");
         auto& ground_renderer = ground_entity.add_component<vulcal::scene::MeshRendererComponent>();
@@ -114,8 +122,8 @@ public:
             angle_ = std::fmod(angle_ + dt.get_seconds() * rotate_speed_, 360.0f);
         }
 
-        auto& bunny_transform = bunny_entity_.get_component<vulcal::scene::TransformComponent>();
-        bunny_transform.rotation_.y = glm::radians(angle_);
+        auto& model_transform = model_entity_.get_component<vulcal::scene::TransformComponent>();
+        model_transform.rotation_.y = glm::radians(angle_);
 
         update_camera_aspect();
     }
@@ -135,7 +143,7 @@ private:
             const float fps = ImGui::GetIO().Framerate;
             ImGui::Text("%.1f FPS | %.2f ms/frame", fps, fps > 0.0f ? 1000.0f / fps : 0.0f);
             ImGui::TextDisabled("Whole-frame interval, including VSync");
-            ImGui::Text("Model: Stanford Bunny");
+            ImGui::Text("Model: %s", model_name_.c_str());
             ImGui::Text("Vertices: %zu | Triangles: %zu", vertex_count_, triangle_count_);
 
             ImGui::SeparatorText("Model");
@@ -190,14 +198,16 @@ private:
         camera.set_aspect(static_cast<float>(window.width()) / static_cast<float>(window.height()));
     }
 
+    std::filesystem::path model_path_;
     std::unique_ptr<vulcal::render::Renderer> renderer_;
     std::unique_ptr<vulcal::scene::Scene> scene_;
-    vulcal::scene::Entity bunny_entity_;
+    vulcal::scene::Entity model_entity_;
     vulcal::scene::Entity camera_entity_;
     vulcal::scene::Entity light_entity_;
     vulcal::scene::Entity environment_entity_;
     vulcal::scene::SceneExtractor extractor_;
     std::unique_ptr<apps::ImGuiIntegration> imgui_;
+    std::string model_name_;
     std::size_t vertex_count_ = 0;
     std::size_t triangle_count_ = 0;
     bool rotate_model_ = true;
@@ -205,14 +215,31 @@ private:
     float rotate_speed_ = 60.0f;
 };
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc != 2) {
+        std::cerr << "Usage: model_viewer <path-to-obj>\n";
+        return 1;
+    }
+
+    const std::filesystem::path model_path = argv[1];
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(model_path, error)) {
+        std::cerr << "Model file not found: " << model_path.string() << '\n';
+        return 1;
+    }
+
     engine::ApplicationCreateInfo info;
     info.width = 1280;
     info.height = 720;
     info.title = "VulcalEngine - Model Viewer";
 
     engine::Application app(info);
-    app.push_layer(std::make_unique<ModelViewerLayer>());
+    try {
+        app.push_layer(std::make_unique<ModelViewerLayer>(model_path));
+    } catch (const std::exception& exception) {
+        std::cerr << "Failed to load model: " << exception.what() << '\n';
+        return 1;
+    }
     app.run();
     return 0;
 }

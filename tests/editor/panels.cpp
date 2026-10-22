@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <memory>
 
 namespace {
 
@@ -21,6 +22,7 @@ protected:
         int width = 0, height = 0;
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
         io.Fonts->SetTexID(ImTextureID{ 1 });
+        context_.set_scene(std::make_unique<vulcal::scene::Scene>());
     }
 
     void TearDown() override { ImGui::DestroyContext(); }
